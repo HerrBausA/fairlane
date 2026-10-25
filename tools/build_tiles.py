@@ -129,11 +129,13 @@ async def main():
         await page.goto(f"http://127.0.0.1:{port}/{os.path.basename(a.html)}")
         page.on('console', lambda m: print('page console:', m.type, m.text[:300]) if m.type in ('error', 'warning') else None)
         try:
-            await page.wait_for_function("window.__flrp&&window.__flrp.exPrebuild", timeout=60000)
+            await page.wait_for_function("(()=>{try{return typeof window.__flrp.exPrebuild==='function'}catch(e){return false}})()", timeout=240000, polling=1000)
         except Exception:
             info = await page.evaluate("({leaflet: typeof L, flrp: typeof window.__flrp, prebuild: window.__flrp ? typeof window.__flrp.exPrebuild : 'n/a', title: document.title})")
             print('\nThe planner page did not become ready:', info)
-            if info.get('leaflet') == 'undefined':
+            if info.get('prebuild') == 'function':
+                print('-> The page became ready only after the wait ran out (slow start). Just run again.')
+            elif info.get('leaflet') == 'undefined':
                 print('-> The map library (Leaflet) could not be loaded from the internet.')
             elif info.get('prebuild') != 'function':
                 print('-> index.html in the repository is an OLD planner version without the build hook.')
