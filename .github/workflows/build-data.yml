@@ -41,7 +41,8 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@users.noreply.github.com"
-          git add data
+          mkdir -p data
+          git add data || true
           git commit -m "Update ready-made map data" || echo "nothing new to save"
           git pull --rebase || true
-          git push
+          git push || echo "nothing to push"
