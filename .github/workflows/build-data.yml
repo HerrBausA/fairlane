@@ -1,0 +1,47 @@
+name: Build ready-made map data
+
+# Start it by hand: Actions tab -> "Build ready-made map data" -> Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      center:
+        description: "Centre of the region as latitude,longitude"
+        default: "48.1786,11.2556"
+      radius_km:
+        description: "Radius around the centre in km"
+        default: "50"
+      max_minutes:
+        description: "Stop after this many minutes (run again to continue)"
+        default: "300"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install headless Chrome
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+      - name: Classify the region
+        run: python tools/build_tiles.py --html index.html --out data --center "${{ inputs.center }}" --radius-km "${{ inputs.radius_km }}" --max-minutes "${{ inputs.max_minutes }}"
+      - name: Save the results into the repository
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git commit -m "Update ready-made map data" || echo "nothing new to save"
+          git pull --rebase || true
+          git push
