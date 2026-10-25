@@ -15,7 +15,7 @@ Usage (the GitHub workflow does this for you):
 
 Re-running continues where it stopped: areas that are already in the manifest (same algorithm version) are skipped.
 """
-import argparse, asyncio, json, math, os, sys, threading, time, datetime, http.server, socketserver, functools
+import sys, argparse, asyncio, json, math, os, sys, threading, time, datetime, http.server, socketserver, functools
 
 TLAT, TLON = 0.1, 0.15   # must match the app
 
@@ -127,7 +127,19 @@ async def main():
         page = await ctx.new_page()
         page.on('pageerror', lambda e: print('page error:', e))
         await page.goto(f"http://127.0.0.1:{port}/{os.path.basename(a.html)}")
-        await page.wait_for_function("window.__flrp&&window.__flrp.exPrebuild", timeout=60000)
+        page.on('console', lambda m: print('page console:', m.type, m.text[:300]) if m.type in ('error', 'warning') else None)
+        try:
+            await page.wait_for_function("window.__flrp&&window.__flrp.exPrebuild", timeout=60000)
+        except Exception:
+            info = await page.evaluate("({leaflet: typeof L, flrp: typeof window.__flrp, prebuild: window.__flrp ? typeof window.__flrp.exPrebuild : 'n/a', title: document.title})")
+            print('\nThe planner page did not become ready:', info)
+            if info.get('leaflet') == 'undefined':
+                print('-> The map library (Leaflet) could not be loaded from the internet.')
+            elif info.get('prebuild') != 'function':
+                print('-> index.html in the repository is an OLD planner version without the build hook.')
+                print('   Upload the newest planner file again, named exactly index.html (Add file -> Upload files, same name replaces it).')
+            await b.close()
+            sys.exit(1)
         done, failed, skipped = await build(page, tiles, a.out, a.max_minutes, a.delay)
         await b.close()
     httpd.shutdown()
