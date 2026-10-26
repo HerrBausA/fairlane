@@ -2537,11 +2537,13 @@ function exUnpackJ(p){const us=exQu(p.us);us.forEach((l,i)=>{l.tier=p.meta[i][0]
   return {us,sc:exQu(p.sc),av:exQu(p.av),fe:{ok:exQu(p.fe.ok),warn:exQu(p.fe.warn),bad:exQu(p.fe.bad)},tk:p.tk,scKm:p.scKm,avKm:p.avKm,fk:p.fk,topo:true};}
 let _exMan=null;
 function exManifest(){return _exMan||(_exMan=(async()=>{if(EX.noPre||location.protocol==='file:')return null;
-  try{const r=await fetch('data/manifest.json',{cache:'no-cache'});if(!r.ok)return null;const m=await r.json();return m&&m.tiles?m:null;}catch(e){return null;}})());}
+  try{const r=await fetch('data/manifest.json',{cache:'no-cache'});if(!r.ok){EX.preWhy='data/manifest.json not found (HTTP '+r.status+')';return null;}const m=await r.json();if(!(m&&m.tiles)){EX.preWhy='manifest.json has no areas';return null;}return m;}catch(e){EX.preWhy='manifest.json could not be read ('+(e&&e.message||e)+')';return null;}})());}
 async function exPreLoad(t){
   if(EX.noPre||t.preTried)return false;t.preTried=true;
-  const m=await exManifest();if(!m||!m.tiles[t.k]||m.carKey!==exCarKey())return false;
-  try{const r=await fetch('data/'+(m.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok)return false;const o=exUnpackJ(await r.json());
+  const m=await exManifest();if(!m)return false;
+  if(m.carKey!==exCarKey()){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+m.carKey;return false;}
+  if(!m.tiles[t.k]){EX.preMiss=(EX.preMiss||0)+1;return false;}
+  try{const r=await fetch('data/'+(m.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok){EX.preWhy='file data/'+(m.dir||'t')+'/'+t.k.replace(',','_')+'.json not found (HTTP '+r.status+')';return false;}const o=exUnpackJ(await r.json());
     t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;t.g=null;EX.preN=(EX.preN||0)+1;EX.preBuilt=m.built;return true;}catch(e){return false;}
 }
 /* build script entry: load one tile exactly like the app does, finish it (extras, land, terrain) and hand back the result as plain JSON */
@@ -2683,7 +2685,7 @@ function exSummary(capped){
   EX.view.forEach(t=>{if(exFailed(t,'roads'))errs.add('roads');if(exFailed(t,'pois'))errs.add('places');});
   if(R.haveRoads)bits.push(`${R.us.toFixed(0)} km US-feeling · ${R.sc.toFixed(0)} km scenic`);
   if($('#exShowPoi').checked)bits.push(`${R.pois.length} place${R.pois.length===1?'':'s'}`);
-  $('#exInfo').textContent=(bits.length?bits.join(' · ')+'.':'Nothing to show – tick something above.')+(capped?' Too much in view – loading the '+EXMAXT+' areas nearest the centre first; everything already loaded is shown across the map. Move or zoom to load more.':'')+(EX.preN?' ⚡ '+EX.preN+' area'+(EX.preN===1?'':'s')+' ready-made'+(EX.preBuilt?' (built '+String(EX.preBuilt).slice(0,10)+')':'')+'.':'')+(exRefining(exCfgOf())?' ⏳ refining surroundings & terrain…':'')+(errs.size?' ⚠ No answer from the server for: '+[...errs].join(', ')+' – move the map or press search again.':'');
+  $('#exInfo').textContent=(bits.length?bits.join(' · ')+'.':'Nothing to show – tick something above.')+(capped?' Too much in view – loading the '+EXMAXT+' areas nearest the centre first; everything already loaded is shown across the map. Move or zoom to load more.':'')+(EX.preN?' ⚡ '+EX.preN+' area'+(EX.preN===1?'':'s')+' ready-made'+(EX.preBuilt?' (built '+String(EX.preBuilt).slice(0,10)+')':'')+'.':(EX.preWhy?' ⚡ ready-made data not used: '+EX.preWhy+'.':EX.preMiss?' ⚡ these '+EX.preMiss+' areas are not in the ready-made data (loaded live).':''))+(exRefining(exCfgOf())?' ⏳ refining surroundings & terrain…':'')+(errs.size?' ⚠ No answer from the server for: '+[...errs].join(', ')+' – move the map or press search again.':'');
 }
 function exPoiObj(e,c){return {id:e.id,ll:e.ll,name:e.t.name||POI_CATS[c].label.replace(/s$/,''),cat:c,hours:e.t.opening_hours||'',site:e.t.website||e.t['contact:website']||''};}
 function exAgg(){
