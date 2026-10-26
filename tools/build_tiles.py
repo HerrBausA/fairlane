@@ -64,35 +64,57 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=600, 
                 os.remove(os.path.join(out, 't', fn))
         man = {'v': 1, 'dir': 't', 'carKey': car_key, 'tiles': {}}
     t0 = time.time()
-    done, failed, skipped = [], [], 0
-    for n, (i, j) in enumerate(tiles):
-        k = f"{i},{j}"
-        if k in man['tiles']:
+    done, skipped = [], 0
+    todo = []
+    for (i, j) in tiles:
+        if f"{i},{j}" in man['tiles']:
             skipped += 1
-            continue
-        if (time.time() - t0) / 60 > max_minutes:
-            log(f"time budget of {max_minutes} min used up – stopping; run again to continue")
+        else:
+            todo.append((i, j))
+    total = len(tiles)
+    out_of_time = False
+    # several passes: every area gets ONE try per pass; failures wait for the next pass, so one overloaded
+    # server does not eat the whole time budget. Between passes the robot rests so the servers can recover.
+    for rnd in range(1, 5):
+        if not todo or out_of_time:
             break
-        res = None
-        for attempt in range(3):
+        if rnd > 1:
+            rest = 120 * (rnd - 1)
+            log(f"pass {rnd}: {len(todo)} areas left – resting {rest} s so the map servers can recover")
+            await asyncio.sleep(rest)
+        retry, streak = [], 0
+        for (i, j) in todo:
+            k = f"{i},{j}"
+            if (time.time() - t0) / 60 > max_minutes:
+                log(f"time budget of {max_minutes} min used up – stopping; run again to continue")
+                out_of_time = True
+                retry.append((i, j))
+                continue
+            res = None
             try:
                 res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
-                break
             except Exception as e:
-                log(f"  tile {k} attempt {attempt + 1} failed: {str(e)[:120]}")
-                await asyncio.sleep(20 * (attempt + 1))
-        if not res or not res.get('pack') or not res.get('topo') and res.get('usN'):
-            failed.append(k)
-            continue
-        with open(os.path.join(out, 't', f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
-            json.dump(res['pack'], f, separators=(',', ':'))
-        man['tiles'][k] = {'km': res.get('usKm', 0), 'n': res.get('usN', 0)}
-        man['built'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-        done.append(k)
-        if len(done) % 5 == 0:
-            save_manifest(mpath, man)
-        log(f"[{n + 1}/{len(tiles)}] tile {k}: {res.get('usN', 0)} US-feeling stretches, {res.get('usKm', 0)} km")
-        await asyncio.sleep(delay)
+                log(f"  tile {k} failed (pass {rnd}): {str(e)[:100]}")
+            if not res or not res.get('pack') or not res.get('topo') and res.get('usN'):
+                retry.append((i, j))
+                streak += 1
+                if streak >= 3:
+                    log("  3 failures in a row – short rest")
+                    await asyncio.sleep(90)
+                    streak = 0
+                continue
+            streak = 0
+            with open(os.path.join(out, 't', f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
+                json.dump(res['pack'], f, separators=(',', ':'))
+            man['tiles'][k] = {'km': res.get('usKm', 0), 'n': res.get('usN', 0)}
+            man['built'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            done.append(k)
+            if len(done) % 5 == 0:
+                save_manifest(mpath, man)
+            log(f"[{len(done) + skipped}/{total}] tile {k}: {res.get('usN', 0)} US-feeling stretches, {res.get('usKm', 0)} km")
+            await asyncio.sleep(delay)
+        todo = retry
+    failed = [f"{i},{j}" for (i, j) in todo]
     save_manifest(mpath, man)
     return done, failed, skipped
 
