@@ -51,7 +51,7 @@ def save_manifest(path, man):
         json.dump(man, f, separators=(',', ':'))
     os.replace(tmp, path)
 
-async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=600, log=print):
+async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print):
     """page: a page that has the planner loaded. Returns (done, failed, skipped)."""
     car_key = await page.evaluate("__flrp.exCarKey()")
     os.makedirs(os.path.join(out, 't'), exist_ok=True)
