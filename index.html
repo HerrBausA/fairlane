@@ -1049,7 +1049,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get exPrebuild(){return exPrebuild},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get exPoiVer(){return exPoiVer},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -2559,14 +2559,16 @@ function exUnpackJ(p){const us=exQu(p.us);us.forEach((l,i)=>{l.tier=p.meta[i][0]
   return {us,sc:exQu(p.sc),av:exQu(p.av),fe:{ok:exQu(p.fe.ok),warn:exQu(p.fe.warn),bad:exQu(p.fe.bad)},tk:p.tk,scKm:p.scKm,avKm:p.avKm,fk:p.fk,topo:true};}
 let _exMan=null;
 function exManifest(){return _exMan||(_exMan=(async()=>{if(EX.noPre||location.protocol==='file:')return null;
-  try{const r=await fetch('data/manifest.json',{cache:'no-cache'});if(!r.ok){EX.preWhy='data/manifest.json not found (HTTP '+r.status+')';return null;}const m=await r.json();if(!(m&&m.tiles)){EX.preWhy='manifest.json has no areas';return null;}return m;}catch(e){EX.preWhy='manifest.json could not be read ('+(e&&e.message||e)+')';return null;}})());}
+  try{const r=await fetch('data/manifest.json',{cache:'no-cache'});if(!r.ok){EX.preWhy='data/manifest.json not found (HTTP '+r.status+')';return null;}const m=await r.json();if(m&&m.carKey&&m.tiles&&!m.cars)m.cars={[m.carKey]:{dir:m.dir||'t',tiles:m.tiles,built:m.built}};   /* older single-car format */
+    if(!(m&&m.cars&&Object.keys(m.cars).length)){EX.preWhy='manifest.json has no areas';return null;}return m;}catch(e){EX.preWhy='manifest.json could not be read ('+(e&&e.message||e)+')';return null;}})());}
 async function exPreLoad(t){
   if(EX.noPre||t.preTried)return false;t.preTried=true;
   const m=await exManifest();if(!m)return false;
-  if(m.carKey!==exCarKey()){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+m.carKey;return false;}
-  if(!m.tiles[t.k]){EX.preMiss=(EX.preMiss||0)+1;return false;}
-  try{const r=await fetch('data/'+(m.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok){EX.preWhy='file data/'+(m.dir||'t')+'/'+t.k.replace(',','_')+'.json not found (HTTP '+r.status+')';return false;}const o=exUnpackJ(await r.json());
-    t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;t.g=null;EX.preN=(EX.preN||0)+1;EX.preBuilt=m.built;return true;}catch(e){return false;}
+  const ce=m.cars[exCarKey()];
+  if(!ce){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+Object.keys(m.cars).join('  ||  ');return false;}
+  if(!ce.tiles[t.k]){EX.preMiss=(EX.preMiss||0)+1;return false;}
+  try{const r=await fetch('data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok){EX.preWhy='file data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json not found (HTTP '+r.status+')';return false;}const o=exUnpackJ(await r.json());
+    t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;t.g=null;EX.preN=(EX.preN||0)+1;EX.preBuilt=ce.built||m.built;return true;}catch(e){return false;}
 }
 /* build script entry: load one tile exactly like the app does, finish it (extras, land, terrain) and hand back the result as plain JSON */
 async function exPrebuild(i,j){
@@ -2575,6 +2577,7 @@ async function exPrebuild(i,j){
   if(!t.chains||!t.chains.length){const o0=t.res[k]||exEval(t);return {k:t.k,carKey:k,empty:true,usN:0,usKm:0,topo:true,landOk:true,pack:exPackJ(o0)};}
   if(!t.xd)await exLoadExtras(t);
   for(let a=0;a<3&&t.res[k]&&!t.res[k].topo&&t.res[k].us.length;a++){try{await exLoadElev(t);}catch(e){await sleep(3000);}}
+  if(!t.res[k])await exEvalAsync(t);   /* 2nd car on a tile that is already in memory */
   const o=t.res[k];if(!o)throw new Error('no result');
   return {k:t.k,carKey:k,landOk:!!t.landOk,topo:!!o.topo,usN:o.us.length,usKm:+(o.tk.bronze+o.tk.silver+o.tk.gold).toFixed(1),pack:exPackJ(o)};
 }
@@ -2613,6 +2616,8 @@ async function exEvalAsync(t){
 }
 async function exLoadPois(t,cats){
   const c=t.core,B=`${c.s.toFixed(5)},${c.w.toFixed(5)},${c.n.toFixed(5)},${c.e.toFixed(5)}`;
+  if(!t.pcached&&!EX.noPre){const m=await exManifest();const pe=m&&m.poi;
+    if(pe&&pe.tiles&&pe.tiles[t.k]){try{const r=await fetch('data/'+(pe.dir||'p')+'/'+t.k.replace(',','_')+'.json');if(r.ok){const j=await r.json();(j.pois||[]).forEach(e=>{if(!t.els.has(e.id))t.els.set(e.id,e);});EX_POI_KEYS().forEach(k=>t.cats.add(k));t.pcached=true;EX.poiPre=(EX.poiPre||0)+1;}}catch(e){}}}
   if(!t.pcached){t.pcached=true;const hit=await exDbGet('p|'+t.k,EXTTL.p);if(hit&&hit.els){hit.els.forEach(e=>{if(!t.els.has(e.id))t.els.set(e.id,e);});(hit.cats||[]).forEach(k=>t.cats.add(k));}}
   const need=cats.filter(k=>!t.cats.has(k));if(!need.length)return;
   const qOne=k=>'('+POI_CATS[k].q.map(x=>`nwr${x}${POI_CATS[k].noName?'':'["name"]'}(${B});`).join('')+');out center tags 300;';
@@ -2627,6 +2632,20 @@ async function exLoadPois(t,cats){
   done.forEach(k=>t.cats.add(k));
   exDbPut('p|'+t.k,{els:[...t.els.values()],cats:[...t.cats]});
 }
+/* build entry for the POIs of one tile: every category, compact (only what the app displays) */
+const EX_POI_KEYS=()=>Object.keys(POI_CATS).filter(k=>POI_CATS[k].q&&POI_CATS[k].q.length);
+async function exPrebuildPois(i,j){
+  EX.noPre=true;window.__flrpPatient=true;const t=exTileGet(i,j),ks=EX_POI_KEYS();
+  await exLoadPois(t,ks);
+  if(ks.some(k=>!t.cats.has(k)))throw new Error('not all POI categories loaded');
+  const out=[];t.els.forEach(e=>{if(POI_BAN(e.t))return;const cs=ks.filter(q=>POI_CATS[q].test(e.t));if(!cs.length)return;
+    const tg={};['name','opening_hours','website','contact:website'].forEach(x=>{if(e.t[x])tg[x]=e.t[x];});out.push({id:e.id,ll:[+e.ll[0].toFixed(6),+e.ll[1].toFixed(6)],t:tg,cs});});
+  return {k:t.k,n:out.length,pois:out};
+}
+function exSetCar(id){const c=allCars()[id];if(!c)throw new Error('unknown car '+id);carId=id;car={...c};try{showCar();}catch(e){}return exCarKey();}
+function exPoiVer(){const str=EX_POI_KEYS().map(k=>k+':'+POI_CATS[k].q.join('')).join('|');let h=5381;for(let i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return 'poi1-'+(h>>>0).toString(36);}
+function exForget(i,j){const t=EX.tiles.get(exTileKey(i,j));if(!t)return;try{if(EX.map){exDropG(t);exDropP(t);}}catch(e){}EX.tiles.delete(t.k);}
+const exElCat=(e,cats)=>e.cs?cats.find(q=>e.cs.includes(q)):cats.find(q=>!POI_BAN(e.t)&&POI_CATS[q].test(e.t));   /* ready-made POIs carry their categories (cs) */
 function exTileGet(i,j){const k=exTileKey(i,j);let t=EX.tiles.get(k);if(!t){t={k,i,j,core:exCore(i,j),els:new Map(),cats:new Set(),chains:null,res:{},busy:new Set(),fail:{},on:{},g:null};EX.tiles.set(k,t);}return t;}
 function exTilesIn(b){
   const i0=Math.floor(b.getSouth()/TLAT),i1=Math.floor(b.getNorth()/TLAT),j0=Math.floor(b.getWest()/TLON),j1=Math.floor(b.getEast()/TLON),out=[];
@@ -2708,7 +2727,7 @@ function exSummary(capped){
   EX.view.forEach(t=>{if(exFailed(t,'roads'))errs.add('roads');if(exFailed(t,'pois'))errs.add('places');});
   if(R.haveRoads)bits.push(`${R.us.toFixed(0)} km US-feeling · ${R.sc.toFixed(0)} km scenic`);
   if($('#exShowPoi').checked)bits.push(`${R.pois.length} place${R.pois.length===1?'':'s'}`);
-  $('#exInfo').textContent=(bits.length?bits.join(' · ')+'.':'Nothing to show – tick something above.')+(capped?' Too much in view – loading the '+EXMAXT+' areas nearest the centre first; everything already loaded is shown across the map. Move or zoom to load more.':'')+(EX.preN?' ⚡ '+EX.preN+' area'+(EX.preN===1?'':'s')+' ready-made'+(EX.preBuilt?' (built '+String(EX.preBuilt).slice(0,10)+')':'')+'.':(EX.preWhy?' ⚡ ready-made data not used: '+EX.preWhy+'.':EX.preMiss?' ⚡ these '+EX.preMiss+' areas are not in the ready-made data (loaded live).':''))+(exRefining(exCfgOf())?' ⏳ refining surroundings & terrain…':'')+(errs.size?' ⚠ No answer from the server for: '+[...errs].join(', ')+' – move the map or press search again.':'');
+  $('#exInfo').textContent=(bits.length?bits.join(' · ')+'.':'Nothing to show – tick something above.')+(capped?' Too much in view – loading the '+EXMAXT+' areas nearest the centre first; everything already loaded is shown across the map. Move or zoom to load more.':'')+(EX.preN?' ⚡ '+EX.preN+' area'+(EX.preN===1?'':'s')+' ready-made'+(EX.preBuilt?' (built '+String(EX.preBuilt).slice(0,10)+')':'')+(EX.poiPre?', places for '+EX.poiPre+' too':'')+'.':(EX.preWhy?' ⚡ ready-made data not used: '+EX.preWhy+'.':EX.preMiss?' ⚡ these '+EX.preMiss+' areas are not in the ready-made data (loaded live).':''))+(exRefining(exCfgOf())?' ⏳ refining surroundings & terrain…':'')+(errs.size?' ⚠ No answer from the server for: '+[...errs].join(', ')+' – move the map or press search again.':'');
 }
 function exPoiObj(e,c){return {id:e.id,ll:e.ll,name:e.t.name||POI_CATS[c].label.replace(/s$/,''),cat:c,hours:e.t.opening_hours||'',site:e.t.website||e.t['contact:website']||''};}
 function exAgg(){
@@ -2716,7 +2735,7 @@ function exAgg(){
   const cats=$$('#exCats input:checked').map(i=>i.value),seen=new Set(),k=exCarKey();
   (EX.vis||EX.view).forEach(t=>{
     if(t.chains){R.haveRoads=true;const o=t.res[k]||exEval(t);R.lines.us.push(...o.us);R.lines.sc.push(...o.sc);R.lines.av.push(...(o.av||[]));R.av+=o.avKm||0;['ok','warn','bad'].forEach(z=>{R.lines.fe[z].push(...o.fe[z]);R.fk[z]+=o.fk[z];});['bronze','silver','gold'].forEach(z=>{R.tk[z]+=o.tk[z];R.us+=o.tk[z];});R.sc+=o.scKm;}
-    t.els.forEach(e=>{const c=cats.find(q=>!POI_BAN(e.t)&&POI_CATS[q].test(e.t));if(!c||seen.has(e.id))return;seen.add(e.id);const p=exPoiObj(e,c);p.m=t.pm&&t.pm.get(e.id)||null;R.pois.push(p);});
+    t.els.forEach(e=>{const c=exElCat(e,cats);if(!c||seen.has(e.id))return;seen.add(e.id);const p=exPoiObj(e,c);p.m=t.pm&&t.pm.get(e.id)||null;R.pois.push(p);});
   });
   if(cats.includes('odd')||cats.includes('oldfuel')){const b=EX.map.getBounds();(S.seedEls||[]).forEach(e=>{const c=cats.find(q=>!POI_BAN(e.tags||{})&&POI_CATS[q].test(e.tags||{}));if(!c||seen.has(e.id))return;if(!(e.lat>=b.getSouth()-.05&&e.lat<=b.getNorth()+.05&&e.lon>=b.getWest()-.07&&e.lon<=b.getEast()+.07))return;seen.add(e.id);R.pois.push({id:'n'+e.id,ll:[e.lat,e.lon],name:e.tags.name,cat:c,hours:'',site:'',seed:true});});}
   R.pois=R.pois.slice(0,500);
@@ -2750,7 +2769,7 @@ function exDropG(t){if(!t.g)return;['casS','casU','casA','sc','av','fe','us','hi
 function exDropP(t){if(t.pg&&t.on.poi){EX.map.removeLayer(t.pg);t.on.poi=false;}t.pg=null;t.pm=null;}
 function exPoiBuild(t,cats){
   exDropP(t);const g=L.layerGroup(),pm=new Map();
-  t.els.forEach(e=>{const c=cats.find(q=>!POI_BAN(e.t)&&POI_CATS[q].test(e.t));if(!c)return;const p=exPoiObj(e,c),m=L.marker(p.ll,{icon:exIcon(p)});m.bindPopup(()=>exPopHtml(p));g.addLayer(m);pm.set(e.id,m);});
+  t.els.forEach(e=>{const c=exElCat(e,cats);if(!c)return;const p=exPoiObj(e,c),m=L.marker(p.ll,{icon:exIcon(p)});m.bindPopup(()=>exPopHtml(p));g.addLayer(m);pm.set(e.id,m);});
   t.pg=g;t.pm=pm;t.pgk=cats.join(',')+'|'+t.els.size;
 }
 let exSyncQ=0;
@@ -2761,7 +2780,7 @@ function exSync(full){
   /* draw everything that is already loaded and classified across the whole map (nearest first, up to EXDRAW areas); only LOADING is limited to the areas nearest the centre */
   const vis=exTilesIn(b).filter((t,i)=>i<EXMAXT||(t.chains&&t.res&&t.res[ck])).slice(0,EXDRAW),want=new Set(vis);EX.vis=vis;
   let built=0,more=false;
-  EX.tiles.forEach(t=>{if(t.pre&&!t.res[ck]){t.pre=false;t.preTried=true;t.chains=null;t.xd=false;t.res={};try{exDropG(t);}catch(e){}}});   /* another car profile: the ready-made files do not apply, load live */
+  EX.tiles.forEach(t=>{if(t.pre&&!t.res[ck]){t.pre=false;t.preTried=false;t.chains=null;t.xd=false;t.res={};try{exDropG(t);}catch(e){}}});   /* another car profile: ready-made files for THAT car are tried, otherwise it loads live */
   EX.tiles.forEach(t=>{
     const on=want.has(t);
     if(t.chains&&on&&(c.us||c.sc||c.fe||c.av)){
