@@ -5,8 +5,10 @@ Pre-classify map areas for the Fairlane Rallye Planner.
 It opens the planner (index.html) in a headless Chrome, lets the app itself load and classify every map
 area ("tile") of a region exactly like it does on your phone, and saves each result as a small JSON file:
 
-    data/manifest.json        which areas are ready, for which car profile / algorithm version, and when
-    data/t/<i>_<j>.json       the finished classification of one area
+    data/manifest.json        which areas are ready, for which car profiles / algorithm version, and when
+    data/t/<i>_<j>.json       the finished classification of one area for the Fairlane
+    data/t_focus/<i>_<j>.json the same for the Ford Focus
+    data/p/<i>_<j>.json       the places (POIs) of one area, shared by all cars
 
 The app then reads these files first and only talks to the map servers for areas that are not ready.
 
@@ -51,27 +53,68 @@ def save_manifest(path, man):
         json.dump(man, f, separators=(',', ':'))
     os.replace(tmp, path)
 
-async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print):
-    """page: a page that has the planner loaded. Returns (done, failed, skipped)."""
-    car_key = await page.evaluate("__flrp.exCarKey()")
-    os.makedirs(os.path.join(out, 't'), exist_ok=True)
+CAR_IDS = ['fairlane58', 'focus']          # car profiles that get ready-made classification
+CAR_DIR = {'fairlane58': 't'}               # folder per car (Fairlane keeps the old folder 't')
+
+def car_dir(cid):
+    return CAR_DIR.get(cid, 't_' + cid)
+
+def clear_dir(path):
+    if os.path.isdir(path):
+        for fn in os.listdir(path):
+            try:
+                os.remove(os.path.join(path, fn))
+            except OSError:
+                pass
+
+def normalise_manifest(man):
+    """older manifests had ONE car (carKey/tiles/dir) – turn them into the several-cars format"""
+    if man and man.get('carKey') and 'cars' not in man:
+        man = {'v': 2, 'cars': {man['carKey']: {'dir': man.get('dir', 't'), 'tiles': man.get('tiles', {}), 'built': man.get('built')}}}
+    man = man or {}
+    man['v'] = 2
+    man.setdefault('cars', {})
+    return man
+
+async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print, cars=None, pois=True):
+    """page: a page that has the planner loaded. Returns (done, failed, skipped) – done/failed/skipped are AREAS."""
+    cars = cars or CAR_IDS
     mpath = os.path.join(out, 'manifest.json')
-    man = load_manifest(mpath)
-    if not man or man.get('carKey') != car_key:
-        if man:
-            log(f"algorithm / car profile changed ({man.get('carKey')} -> {car_key}): rebuilding everything")
-            for fn in os.listdir(os.path.join(out, 't')):
-                os.remove(os.path.join(out, 't', fn))
-        man = {'v': 1, 'dir': 't', 'carKey': car_key, 'tiles': {}}
+    man = normalise_manifest(load_manifest(mpath))
+    keys = {}
+    for cid in cars:
+        keys[cid] = await page.evaluate("id=>__flrp.exSetCar(id)", cid)
+        os.makedirs(os.path.join(out, car_dir(cid)), exist_ok=True)
+    # a car whose algorithm / profile changed: its old results are void
+    for key in list(man['cars']):
+        if key not in keys.values():
+            e = man['cars'].pop(key)
+            log(f"profile / algorithm changed – dropping old results of: {key}")
+            clear_dir(os.path.join(out, e.get('dir', 't')))
+    for cid in cars:
+        man['cars'].setdefault(keys[cid], {'dir': car_dir(cid), 'tiles': {}, 'built': None})['dir'] = car_dir(cid)
+    if pois:
+        pver = await page.evaluate("__flrp.exPoiVer()")
+        pe = man.get('poi')
+        if not pe or pe.get('ver') != pver:
+            if pe:
+                log("POI definitions changed – rebuilding the places")
+                clear_dir(os.path.join(out, pe.get('dir', 'p')))
+            pe = man['poi'] = {'dir': 'p', 'ver': pver, 'tiles': {}, 'built': None}
+        os.makedirs(os.path.join(out, 'p'), exist_ok=True)
+    now = lambda: datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    def missing(i, j):
+        k = f"{i},{j}"
+        m = [cid for cid in cars if k not in man['cars'][keys[cid]]['tiles']]
+        if pois and k not in man['poi']['tiles']:
+            m.append('poi')
+        return m
+
     t0 = time.time()
-    done, skipped = [], 0
-    todo = []
-    for (i, j) in tiles:
-        if f"{i},{j}" in man['tiles']:
-            skipped += 1
-        else:
-            todo.append((i, j))
-    total = len(tiles)
+    todo = [(i, j) for (i, j) in tiles if missing(i, j)]
+    skipped = len(tiles) - len(todo)
+    done, saved_n = [], 0
     out_of_time = False
     # several passes: every area gets ONE try per pass; failures wait for the next pass, so one overloaded
     # server does not eat the whole time budget. Between passes the robot rests so the servers can recover.
@@ -90,31 +133,54 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
                 out_of_time = True
                 retry.append((i, j))
                 continue
-            res = None
-            try:
-                res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
-            except Exception as e:
-                log(f"  tile {k} failed (pass {rnd}): {str(e)[:100]}")
-            if not res or not res.get('pack') or not res.get('topo') and res.get('usN'):
+            progress = False
+            for part in missing(i, j):
+                try:
+                    if part == 'poi':
+                        res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuildPois(i,j)", [i, j]), tile_timeout)
+                        with open(os.path.join(out, 'p', f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
+                            json.dump({'pois': res['pois']}, f, separators=(',', ':'), ensure_ascii=False)
+                        man['poi']['tiles'][k] = res['n']
+                        man['poi']['built'] = now()
+                        log(f"[{k}] places: {res['n']}")
+                    else:
+                        await page.evaluate("id=>__flrp.exSetCar(id)", part)
+                        res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
+                        if not res or not res.get('pack') or (not res.get('topo') and res.get('usN')):
+                            raise RuntimeError('incomplete result')
+                        d = car_dir(part)
+                        with open(os.path.join(out, d, f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
+                            json.dump(res['pack'], f, separators=(',', ':'))
+                        ce = man['cars'][keys[part]]
+                        ce['tiles'][k] = {'km': res.get('usKm', 0), 'n': res.get('usN', 0)}
+                        ce['built'] = now()
+                        log(f"[{k}] {part}: {res.get('usN', 0)} US-feeling stretches, {res.get('usKm', 0)} km")
+                    progress = True
+                    saved_n += 1
+                    if saved_n % 5 == 0:
+                        man['built'] = now()
+                        save_manifest(mpath, man)
+                except Exception as e:
+                    log(f"  area {k} / {part} failed (pass {rnd}): {str(e)[:100]}")
+            if missing(i, j):
                 retry.append((i, j))
-                streak += 1
+                streak = 0 if progress else streak + 1
                 if streak >= 3:
                     log("  3 failures in a row – short rest")
                     await asyncio.sleep(90)
                     streak = 0
-                continue
-            streak = 0
-            with open(os.path.join(out, 't', f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
-                json.dump(res['pack'], f, separators=(',', ':'))
-            man['tiles'][k] = {'km': res.get('usKm', 0), 'n': res.get('usN', 0)}
-            man['built'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-            done.append(k)
-            if len(done) % 5 == 0:
-                save_manifest(mpath, man)
-            log(f"[{len(done) + skipped}/{total}] tile {k}: {res.get('usN', 0)} US-feeling stretches, {res.get('usKm', 0)} km")
-            await asyncio.sleep(delay)
+            else:
+                streak = 0
+                done.append(k)
+                try:
+                    await page.evaluate("([i,j])=>__flrp.exForget(i,j)", [i, j])   # free the memory of this area
+                except Exception:
+                    pass
+                log(f"[{skipped + len(done)}/{len(tiles)}] area {k} complete")
+                await asyncio.sleep(delay)
         todo = retry
     failed = [f"{i},{j}" for (i, j) in todo]
+    man['built'] = now()
     save_manifest(mpath, man)
     return done, failed, skipped
 
@@ -168,6 +234,10 @@ async def main():
         await b.close()
     httpd.shutdown()
     print(f"finished: {len(done)} built, {skipped} already there, {len(failed)} failed")
+    try:
+        open('failed_count.txt', 'w').write(str(len(failed)))   # read by the workflow: decides whether another run is needed
+    except Exception:
+        pass
     if failed:
         print("failed areas (run again to retry):", ' '.join(failed))
 
