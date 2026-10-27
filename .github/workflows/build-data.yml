@@ -1,21 +1,34 @@
 name: Build ready-made map data
 
 # Start it by hand: Actions tab -> "Build ready-made map data" -> Run workflow.
+# "How many runs" lets it repeat itself (one after another, each up to the maximum run time) until nothing is missing.
+run-name: "Build map data – run ${{ inputs.run_no || '1' }} of ${{ inputs.runs || '1' }}"
+
 on:
   workflow_dispatch:
     inputs:
       center:
         description: "Centre of the region as latitude,longitude"
-        default: "48.1786,11.2556"
+        default: "48.4104, 10.9641"
       radius_km:
         description: "Radius around the centre in km"
         default: "50"
       max_minutes:
-        description: "Stop after this many minutes (run again to continue)"
+        description: "Maximum run time of ONE run in minutes (GitHub allows up to 330)"
         default: "300"
+      runs:
+        description: "How many runs in a row (1 = just once, 5 = up to 5 runs, stops early when nothing is missing)"
+        default: "1"
+      pause_min:
+        description: "Pause at the start of each repeat run in minutes, max 60 (counts into its run time)"
+        default: "15"
+      run_no:
+        description: "(leave as it is – counts the runs by itself)"
+        default: "1"
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: build-data
@@ -34,8 +47,21 @@ jobs:
         run: |
           pip install playwright
           playwright install --with-deps chromium
+      - name: Rest first (only in repeat runs)
+        run: |
+          NO="${{ inputs.run_no }}"; PAUSE="${{ inputs.pause_min }}"; MAXM="${{ inputs.max_minutes }}"
+          [ -z "$NO" ] && NO=1; [ -z "$PAUSE" ] && PAUSE=15; [ -z "$MAXM" ] && MAXM=300
+          [ "$PAUSE" -gt 60 ] && PAUSE=60
+          [ "$MAXM" -gt 320 ] && MAXM=320
+          if [ "$NO" -gt 1 ]; then
+            echo "Run $NO: resting $PAUSE minutes so the map servers can recover …"
+            sleep $((PAUSE * 60))
+            MAXM=$((MAXM - PAUSE))
+            [ "$MAXM" -lt 30 ] && MAXM=30
+          fi
+          echo "BUDGET=$MAXM" >> "$GITHUB_ENV"
       - name: Classify the region
-        run: python tools/build_tiles.py --html index.html --out data --center "${{ inputs.center }}" --radius-km "${{ inputs.radius_km }}" --max-minutes "${{ inputs.max_minutes }}"
+        run: python tools/build_tiles.py --html index.html --out data --center "${{ inputs.center }}" --radius-km "${{ inputs.radius_km }}" --max-minutes "$BUDGET"
       - name: Save the results into the repository
         if: always()
         run: |
@@ -43,6 +69,21 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           mkdir -p data
           git add data || true
-          git commit -m "Update ready-made map data" || echo "nothing new to save"
+          git commit -m "Update ready-made map data (run ${{ inputs.run_no }} of ${{ inputs.runs }})" || echo "nothing new to save"
           git pull --rebase || true
           git push || echo "nothing to push"
+      - name: Start the next run if areas are still missing
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUNS="${{ inputs.runs }}"; NO="${{ inputs.run_no }}"; PAUSE="${{ inputs.pause_min }}"
+          [ -z "$RUNS" ] && RUNS=1; [ -z "$NO" ] && NO=1; [ -z "$PAUSE" ] && PAUSE=15
+          MISSING=$(cat failed_count.txt 2>/dev/null || echo "unknown")
+          echo "run $NO of $RUNS – areas still missing: $MISSING"
+          if [ "$MISSING" = "0" ]; then echo "Everything is built – no further run needed."; exit 0; fi
+          if [ "$NO" -ge "$RUNS" ] || [ "$NO" -ge 20 ]; then echo "Last planned run reached."; exit 0; fi
+          gh workflow run build-data.yml --ref "${{ github.ref_name }}" \
+            -f center="${{ inputs.center }}" -f radius_km="${{ inputs.radius_km }}" \
+            -f max_minutes="${{ inputs.max_minutes }}" -f runs="$RUNS" -f pause_min="$PAUSE" -f run_no="$((NO + 1))"
+          echo "Next run requested."
