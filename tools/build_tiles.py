@@ -76,7 +76,7 @@ def normalise_manifest(man):
     man.setdefault('cars', {})
     return man
 
-async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print, cars=None, pois=True):
+async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print, cars=None, pois=True, rest_base=120):
     """page: a page that has the planner loaded. Returns (done, failed, skipped) – done/failed/skipped are AREAS."""
     cars = cars or CAR_IDS
     mpath = os.path.join(out, 'manifest.json')
@@ -106,7 +106,7 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
 
     def missing(i, j):
         k = f"{i},{j}"
-        m = [cid for cid in cars if k not in man['cars'][keys[cid]]['tiles']]
+        m = [cid for cid in cars if man['cars'][keys[cid]]['tiles'].get(k, {}).get('v') != 2]   # entries without v:2 come from an older, less strict robot → rebuilt
         if pois and k not in man['poi']['tiles']:
             m.append('poi')
         return m
@@ -122,7 +122,7 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
         if not todo or out_of_time:
             break
         if rnd > 1:
-            rest = 120 * (rnd - 1)
+            rest = rest_base * (rnd - 1)
             log(f"pass {rnd}: {len(todo)} areas left – resting {rest} s so the map servers can recover")
             await asyncio.sleep(rest)
         retry, streak = [], 0
@@ -146,13 +146,16 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
                     else:
                         await page.evaluate("id=>__flrp.exSetCar(id)", part)
                         res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
-                        if not res or not res.get('pack') or (not res.get('topo') and res.get('usN')):
+                        if not res or not res.get('pack'):
                             raise RuntimeError('incomplete result')
+                        if not res.get('landOk') or not res.get('xd') or not res.get('topoOk'):
+                            # land use / extras / terrain data missing: the result would look worse (or better) than it is
+                            raise RuntimeError('data incomplete (land %s, extras %s, terrain %s) – will retry' % (res.get('landOk'), res.get('xd'), res.get('topoOk')))
                         d = car_dir(part)
                         with open(os.path.join(out, d, f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
                             json.dump(res['pack'], f, separators=(',', ':'))
                         ce = man['cars'][keys[part]]
-                        ce['tiles'][k] = {'km': res.get('usKm', 0), 'n': res.get('usN', 0)}
+                        ce['tiles'][k] = {'km': res.get('usKm', 0), 'n': res.get('usN', 0), 'v': 2}
                         ce['built'] = now()
                         log(f"[{k}] {part}: {res.get('usN', 0)} US-feeling stretches, {res.get('usKm', 0)} km")
                     progress = True
