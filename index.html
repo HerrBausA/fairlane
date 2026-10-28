@@ -1049,7 +1049,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get exPoiVer(){return exPoiVer},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get exPoiVer(){return exPoiVer},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -1467,9 +1467,27 @@ function geoScoreUS(m,D){
 }
 /* US-feeling tiers: bronze = open road but short or ordinary, silver = good, gold = the real thing (long, straight/sweeping, far sight line, main road) */
 const TIERC={bronze:'#b8651b',silver:'#8fa3b5',gold:'#ffb800'},TIERN={bronze:'Bronze',silver:'Silver',gold:'Gold'};
-const usQ=(lenKm,sightM,hwF,straight)=>.3*clamp((lenKm-.7)/5,0,1)+.35*clamp((sightM-700)/2000,0,1)+.2*hwF+.15*straight;
-/* calibrated on 65 rated stretches: gold ≥ .66 was right 89% of the time; silver only when the sight line is long (≥ 1.7 km: 71% right, below that 21%) */
-const SILVER_SIGHT=0,SILVER_Q=.5;   /* recalibrated on 215 ratings: silver from q .50 (58% US-feeling), the sight-line rule did not hold up with more data */
+/* US-FEELING MODEL – one model for live results, ready-made data and cached data (the stored measurements f are re-scored, so nothing has to be rebuilt when the weights change).
+   Calibrated on 219 rated stretches (28 Oct): length of the stretch and how straight it holds are what separates "US-feeling" from "just nice" (AUC .68 → .79 on all ratings; gold 88 % right, silver 58 %, bronze 26 %).
+   The sight line saturates (it is already a precondition), road class tells almost nothing. Land use / view / speed zones are corrections: the open-country bonus and the built-up penalty were softened
+   because many roads you rate US-feeling run through small villages (Straßendörfer) like US highways do. A speed zone only counts where it lies inside the stretch (it used to be the whole road). */
+const US_P={wl:.38,ws:.16,wh:.08,wst:.38,open:.03,forest:.08,built:.06,m50:.10,m70:.04,view:.20,traf:.10,wall:.08,tree:.04};
+const hwFof=h=>h==='primary'?1:h==='secondary'?.9:h==='tertiary'?.7:.5;
+const usQ=(lenKm,sightM,hwF,straight)=>US_P.wl*clamp((lenKm-.7)/3.5,0,1)+US_P.ws*clamp((sightM-700)/2000,0,1)+US_P.wh*hwF+US_P.wst*straight;
+/* corrections from the measurements next to the road (all optional: older data simply has fewer of them) */
+function usEvQ(f){
+  let q=0;const pol=Math.max(f.poles||0,.7*(f.minor||0));
+  q+=.08*clamp(pol/.35,0,1)+((f.len||0)>=1.2?.08*clamp(((f.rail||0)-.25)/.5,0,1):0)-.05*Math.min(2,f.sig||0);
+  if(f.open!=null)q+=US_P.open*clamp((f.open-.55)/.35,-1,1)-US_P.forest*clamp(((f.forest||0)-.35)/.4,0,1)-US_P.built*clamp(((f.built||0)-.08)/.3,0,1);
+  if(f.m50!=null)q-=US_P.m50*clamp(f.m50/.3,0,1)+US_P.m70*clamp((f.m70||0)/.3,0,1);   /* share of the stretch inside 50 / 70 km/h zones */
+  else if(f.maxs!=null)q-=f.maxs<=50?US_P.m50:f.maxs<=70?US_P.m70:0;                      /* older data: lowest limit anywhere on the road */
+  if(f.vo!=null)q+=US_P.view*(clamp(((f.view||0)-700)/2000,0,1)-clamp(((f.sight||0)-700)/2000,0,1))-US_P.wall*clamp((f.wall||0)/.3,0,1)-US_P.tree*clamp((f.tree||0)/.4,0,1);
+  if(f.traffic!=null)q-=US_P.traf*f.traffic;
+  return q;
+}
+const usModelQ=f=>usQ(f.len,f.sight,hwFof(f.hw),f.straight)+usEvQ(f);
+/* calibrated tier cuts: gold ≥ .66, silver ≥ .50 (the sight-line rule did not hold up with more data) */
+const SILVER_SIGHT=0,SILVER_Q=.5;
 const usTierQ=(q,sight)=>q>=.66?'gold':(q>=SILVER_Q&&(sight==null||sight>=SILVER_SIGHT))?'silver':'bronze';
 const usTier=(lenKm,sightM,hwF,straight)=>usTierQ(usQ(lenKm,sightM,hwF,straight),sightM);
 /* Sections that give the open-road feeling: gentle sweepers or straights (heading holds over 300 m, no sharp turn) with a long sight line */
@@ -2207,12 +2225,14 @@ function exChains(ways){
       const b0=brg(pts[pts.length-2],t);let best=null,bd=999;
       cand.forEach(x=>{const q=x.e===0?x.w.pts:x.w.pts.slice().reverse(),d=Math.abs(((brg(q[0],q[1])-b0+540)%360)-180);if(d<bd){bd=d;best={x,q};}});
       if(!best||bd>60)break;
-      best.x.w.used=true;noteTags(c,best.x.w.tag);for(let i=1;i<best.q.length;i++)pts.push(best.q[i]);
+      best.x.w.used=true;noteTags(c,best.x.w.tag);const spw=spdOf(best.x.w.tag);for(let i=1;i<best.q.length;i++){pts.push(best.q[i]);c.spd.push(spw);}
     }
   };
+  /* speed limit of one way (null = not tagged); kept per point so a stretch only counts the zones that lie inside it */
+  const spdOf=t=>{const sp=/urban|living_street/.test(t.maxspeed||'')?50:numTag(t.maxspeed);return sp==null?null:sp;};
   const noteTags=(c,t)=>{if(/^(yes|both|left;right|right;left)$/.test(t.tree_lined||''))c.tl=1;   /* only when the road is tagged tree-lined – a name alone proves nothing */
   const w=numTag(t.width)||numTag(t.maxwidth),mw=numTag(t.maxweight);if(w!=null)c.width=Math.min(c.width==null?99:c.width,w);if(mw!=null)c.maxw=Math.min(c.maxw==null?99:c.maxw,mw);const sp=/urban|living_street/.test(t.maxspeed||'')?50:numTag(t.maxspeed);if(sp!=null)c.maxs=Math.min(c.maxs==null?999:c.maxs,sp);};
-  W.forEach(w=>{if(w.used)return;w.used=true;const c={hw:w.tag.highway,ref:w.tag.ref||'',name:w.tag.name||'',width:null,maxw:null,wid:w.id};noteTags(c,w.tag);const pts=w.pts.slice();grow(c,pts,w.g);pts.reverse();grow(c,pts,w.g);c.pts=pts;out.push(c);});
+  W.forEach(w=>{if(w.used)return;w.used=true;const c={hw:w.tag.highway,ref:w.tag.ref||'',name:w.tag.name||'',width:null,maxw:null,wid:w.id};noteTags(c,w.tag);const pts=w.pts.slice();c.spd=pts.map(()=>spdOf(w.tag));grow(c,pts,w.g);pts.reverse();c.spd.reverse();grow(c,pts,w.g);c.pts=pts;out.push(c);});
   return out;
 }
 /* One road → US-feeling stretches (bronze/silver/gold), scenic stretches */
@@ -2263,23 +2283,25 @@ function exSections(c,guardNear,xt){
     for(let i=0;i<n-1;i+=3)if(sight[i]<700)for(let k=i;k<Math.min(n,i+3);k++)ok[k]=false;
     const f=fill(ok,5);for(let i=0;i<n;i++)if(gv[i]||sv[i])f[i]=false;
     const hwF=c.hw==='primary'?1:c.hw==='secondary'?.9:c.hw==='tertiary'?.7:.5;
+    /* speed limit at every resampled point (nearest original point along the chain) */
+    let spdAt=null;
+    if(c.spd&&c.spd.length===pts.length){spdAt=new Array(n);let j=0;for(let k=0;k<n;k++){while(j<pts.length-1&&hav(rs[k],pts[j+1])<=hav(rs[k],pts[j]))j++;spdAt[k]=c.spd[j];}}
     cut(f,.7).forEach(x=>{let ss=0,sn=0,st=0;for(let k=x.a;k<x.b;k++){ss+=sight[k-(k%3)]||0;sn++;if(k<hd.length-5&&an(hd[k+5],hd[k])<=6)st++;isUs[k]=true;}
       const sg=x.pts,q0=usQ((x.b-x.a)*.06,ss/sn,hwF,st/sn);sg.len=(x.b-x.a)*.06;
       let sg_=0;
       if(xt&&xt.sig){let run=false;for(let k=Math.max(0,x.a-5);k<Math.min(n,x.b+5);k++){if(sv[k]&&!run)sg_++;run=sv[k];}}
-      const ev=exEvid(rs,x.a,x.b,xt),pol=Math.max(ev.poles,.7*ev.minor);
-      let qx=q0+.08*clamp(pol/.35,0,1)+(sg.len>=1.2?.08*clamp((ev.rail-.25)/.5,0,1):0)-.05*Math.min(2,sg_);
-      /* open farmland / meadows next to the road help; forest and built-up land (city traffic, lights) hurt; 50 km/h zones are towns */
-      if(ev.open!=null)qx+=.07*clamp((ev.open-.55)/.35,-1,1)-.10*clamp((ev.forest-.35)/.4,0,1)-.18*clamp((ev.built-.08)/.3,0,1);
-      if(c.maxs!=null)qx-=c.maxs<=50?.15:c.maxs<=70?.05:0;
-      /* VIEW DISTANCE: the straight-road sight line is cut down by whatever stands beside the road (tree rows, hedges, noise walls, forest edge, houses); a noise wall or a tree tunnel kills the open-road impression */
+      const ev=exEvid(rs,x.a,x.b,xt);
+      /* speed zones that lie INSIDE this stretch (the chain's speed limit per point; older caches without it fall back to the lowest limit anywhere on the road) */
+      let m50=null,m70=null,msMin=c.maxs==null?null:c.maxs;
+      if(spdAt){let z5=0,z7=0,mn=999;for(let k=x.a;k<x.b;k++){const v=spdAt[k];if(v==null)continue;if(v<mn)mn=v;if(v<=50)z5++;else if(v<=70)z7++;}m50=z5/(x.b-x.a);m70=z7/(x.b-x.a);msMin=mn<999?mn:null;}
+      /* VIEW DISTANCE: the straight-road sight line is cut down by whatever stands beside the road (tree rows, hedges, noise walls, forest edge, houses) */
       const sRaw=ss/sn,sEff=ev.vo==null?sRaw:sRaw*(.35+.65*ev.vo);
-      if(ev.vo!=null)qx+=.35*(clamp((sEff-700)/2000,0,1)-clamp((sRaw-700)/2000,0,1))-.08*clamp(ev.wall/.3,0,1)-.04*clamp(ev.tree/.4,0,1);
       /* traffic is not in OSM: a guess from road class and distance to a town / city */
-      const trf=exTraffic(c,x.pts[Math.floor(x.pts.length/2)],xt);qx-=.10*trf;
+      const trf=exTraffic(c,x.pts[Math.floor(x.pts.length/2)],xt);
       let tn=0;for(let k=x.a+1;k<Math.min(x.b,hd.length);k++)tn+=an(hd[k],hd[k-1]);
-      sg.tier=usTierQ(qx,sEff);
-      sg.f={q:+qx.toFixed(3),q0:+q0.toFixed(3),poles:+ev.poles.toFixed(2),minor:+ev.minor.toFixed(2),rail:+ev.rail.toFixed(2),sig:sg_,len:+sg.len.toFixed(2),sight:Math.round(ss/sn),view:Math.round(sEff),vo:ev.vo==null?null:+ev.vo.toFixed(2),tree:+ev.tree.toFixed(2),wall:+ev.wall.toFixed(2),traffic:+trf.toFixed(2),straight:+(st/sn).toFixed(2),curv:Math.round(tn/Math.max(.06,sg.len)),open:ev.open==null?null:+ev.open.toFixed(2),forest:ev.forest==null?null:+ev.forest.toFixed(2),built:ev.built==null?null:+ev.built.toFixed(2),maxs:c.maxs==null?null:c.maxs,ev:xt?1:0,hw:c.hw,ref:c.ref||'',wid:c.wid,tier:sg.tier,guardNear:!!guardNear};res.us.push(sg);});
+      const f={q:0,q0:0,poles:+ev.poles.toFixed(2),minor:+ev.minor.toFixed(2),rail:+ev.rail.toFixed(2),sig:sg_,len:+sg.len.toFixed(2),sight:Math.round(ss/sn),view:Math.round(sEff),vo:ev.vo==null?null:+ev.vo.toFixed(2),tree:+ev.tree.toFixed(2),wall:+ev.wall.toFixed(2),traffic:+trf.toFixed(2),straight:+(st/sn).toFixed(2),curv:Math.round(tn/Math.max(.06,sg.len)),open:ev.open==null?null:+ev.open.toFixed(2),forest:ev.forest==null?null:+ev.forest.toFixed(2),built:ev.built==null?null:+ev.built.toFixed(2),maxs:msMin,m50:m50==null?null:+m50.toFixed(2),m70:m70==null?null:+m70.toFixed(2),ev:xt?1:0,hw:c.hw,ref:c.ref||'',wid:c.wid};
+      f.q0=+usQ(f.len,f.sight,hwF,f.straight).toFixed(3);f.q=+usModelQ(f).toFixed(3);   /* same function as the re-scoring of stored data → identical numbers */
+      sg.tier=usTierQ(f.q,f.view);f.tier=sg.tier;f.guardNear=!!guardNear;sg.f=f;res.us.push(sg);});
   }
   /* scenic: windows of ±500 m whose curviness fits the car's band (and that are not already US-feeling) */
   const sc=new Array(n).fill(false),W=8;
@@ -2547,16 +2569,26 @@ function exTopoApply(t,known){
 }
 const exPl=ls=>{let n=0;ls.forEach(l=>{n+=l.length;});const off=new Int32Array(ls.length+1),xy=new Float64Array(n*2);let p=0;ls.forEach((l,i)=>{off[i]=p;for(const q of l){xy[p*2]=q[0];xy[p*2+1]=q[1];p++;}});off[ls.length]=p;return {off,xy};};
 const exUl=h=>{const out=new Array(h.off.length-1);for(let i=0;i<out.length;i++){const l=[];for(let p=h.off[i];p<h.off[i+1];p++)l.push([h.xy[p*2],h.xy[p*2+1]]);out[i]=l;}return out;};
+/* re-score stored results with the current model (ready-made data and cached tiles keep their measurements f; weights / tier cuts can change without rebuilding anything) */
+function exRescore(o){
+  if(!o||!o.us)return o;
+  o.us.forEach(l=>{const f=l.f;if(!f||f.len==null||f.sight==null||f.straight==null||!f.hw)return;
+    const q=usModelQ(f);f.q0=+usQ(f.len,f.sight,hwFof(f.hw),f.straight).toFixed(3);f.q=+q.toFixed(3);
+    let qt=q;if(f.topo){qt=q+topoQ(f.topo);f.tier0=usTierQ(q,f.view);f.qTopo=+qt.toFixed(3);}
+    l.tier=usTierQ(qt,f.view);f.tier=l.tier;});
+  o.tk={bronze:0,silver:0,gold:0};o.us.forEach(l=>{o.tk[l.tier||'bronze']+=lenKm([l]);});
+  return o;
+}
 function exPack(o){return {pk:1,us:exPl(o.us),meta:JSON.stringify(o.us.map(l=>[l.tier,l.f])),sc:exPl(o.sc),av:exPl(o.av||[]),avKm:o.avKm||0,fe:{ok:exPl(o.fe.ok),warn:exPl(o.fe.warn),bad:exPl(o.fe.bad)},tk:o.tk,scKm:o.scKm,fk:o.fk,topo:!!o.topo};}
 function exUnpack(o){
-  if(o.pk){const meta=JSON.parse(o.meta),us=exUl(o.us);us.forEach((l,i)=>{l.tier=meta[i][0];l.f=meta[i][1];});return {us,sc:exUl(o.sc),av:o.av?exUl(o.av):[],avKm:o.avKm||0,fe:{ok:exUl(o.fe.ok),warn:exUl(o.fe.warn),bad:exUl(o.fe.bad)},tk:o.tk,scKm:o.scKm,fk:o.fk,topo:o.topo};}
-  o.us=o.us.map(x=>{const l=x.p;l.tier=x.tier;l.f=x.f;return l;});return o;}
+  if(o.pk){const meta=JSON.parse(o.meta),us=exUl(o.us);us.forEach((l,i)=>{l.tier=meta[i][0];l.f=meta[i][1];});return exRescore({us,sc:exUl(o.sc),av:o.av?exUl(o.av):[],avKm:o.avKm||0,fe:{ok:exUl(o.fe.ok),warn:exUl(o.fe.warn),bad:exUl(o.fe.bad)},tk:o.tk,scKm:o.scKm,fk:o.fk,topo:o.topo});}
+  o.us=o.us.map(x=>{const l=x.p;l.tier=x.tier;l.f=x.f;return l;});return exRescore(o);}
 /* ---- ready-made results: tiles classified in advance by the build script (tools/) and published next to this page in data/ ---- */
 const exQ=ls=>{const o=[0],d=[];let px=0,py=0;ls.forEach(l=>{for(const q of l){const x=Math.round(q[0]*1e6),y=Math.round(q[1]*1e6);d.push(x-px,y-py);px=x;py=y;}o.push(d.length/2);});return {o,d};};
 const exQu=h=>{const out=[];let px=0,py=0;for(let i=0;i<h.o.length-1;i++){const l=[];for(let p=h.o[i];p<h.o[i+1];p++){px+=h.d[p*2];py+=h.d[p*2+1];l.push([px/1e6,py/1e6]);}out.push(l);}return out;};
 function exPackJ(o){return {v:1,us:exQ(o.us),meta:o.us.map(l=>[l.tier,l.f]),sc:exQ(o.sc),av:exQ(o.av||[]),fe:{ok:exQ(o.fe.ok),warn:exQ(o.fe.warn),bad:exQ(o.fe.bad)},tk:o.tk,scKm:o.scKm,avKm:o.avKm||0,fk:o.fk};}
 function exUnpackJ(p){const us=exQu(p.us);us.forEach((l,i)=>{l.tier=p.meta[i][0];l.f=p.meta[i][1];});
-  return {us,sc:exQu(p.sc),av:exQu(p.av),fe:{ok:exQu(p.fe.ok),warn:exQu(p.fe.warn),bad:exQu(p.fe.bad)},tk:p.tk,scKm:p.scKm,avKm:p.avKm,fk:p.fk,topo:true};}
+  return exRescore({us,sc:exQu(p.sc),av:exQu(p.av),fe:{ok:exQu(p.fe.ok),warn:exQu(p.fe.warn),bad:exQu(p.fe.bad)},tk:p.tk,scKm:p.scKm,avKm:p.avKm,fk:p.fk,topo:true});}
 let _exMan=null;
 function exManifest(){return _exMan||(_exMan=(async()=>{if(EX.noPre||location.protocol==='file:')return null;
   try{const r=await fetch('data/manifest.json',{cache:'no-cache'});if(!r.ok){EX.preWhy='data/manifest.json not found (HTTP '+r.status+')';return null;}const m=await r.json();if(m&&m.carKey&&m.tiles&&!m.cars)m.cars={[m.carKey]:{dir:m.dir||'t',tiles:m.tiles,built:m.built}};   /* older single-car format */
@@ -2566,20 +2598,25 @@ async function exPreLoad(t){
   const m=await exManifest();if(!m)return false;
   const ce=m.cars[exCarKey()];
   if(!ce){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+Object.keys(m.cars).join('  ||  ');return false;}
-  if(!ce.tiles[t.k]){EX.preMiss=(EX.preMiss||0)+1;return false;}
+  if(!ce.tiles[t.k]||ce.tiles[t.k].v!==2){EX.preMiss=(EX.preMiss||0)+1;return false;}   /* v:2 = verified complete (land use + terrain); older entries may be incomplete → loaded live */
   try{const r=await fetch('data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok){EX.preWhy='file data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json not found (HTTP '+r.status+')';return false;}const o=exUnpackJ(await r.json());
     t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;t.g=null;EX.preN=(EX.preN||0)+1;EX.preBuilt=ce.built||m.built;return true;}catch(e){return false;}
 }
 /* build script entry: load one tile exactly like the app does, finish it (extras, land, terrain) and hand back the result as plain JSON */
 async function exPrebuild(i,j){
-  EX.noPre=true;window.__flrpPatient=true;const t=exTileGet(i,j),k=exCarKey();
+  EX.noPre=true;window.__flrpPatient=true;const t=exTileGet(i,j),k=exCarKey(),W=EX.buildWait==null?15000:EX.buildWait;
   await exLoadRoads(t);
-  if(!t.chains||!t.chains.length){const o0=t.res[k]||exEval(t);return {k:t.k,carKey:k,empty:true,usN:0,usKm:0,topo:true,landOk:true,pack:exPackJ(o0)};}
+  if(!t.chains||!t.chains.length){const o0=t.res[k]||exEval(t);return {k:t.k,carKey:k,empty:true,usN:0,usKm:0,topo:true,topoOk:true,landOk:true,xd:true,pack:exPackJ(o0)};}
   if(!t.xd)await exLoadExtras(t);
-  for(let a=0;a<3&&t.res[k]&&!t.res[k].topo&&t.res[k].us.length;a++){try{await exLoadElev(t);}catch(e){await sleep(3000);}}
-  if(!t.res[k])await exEvalAsync(t);   /* 2nd car on a tile that is already in memory */
+  /* a result with missing land-use data gets no openness bonus (roads look worse than they are) – so ask again until it is there */
+  for(let a=0;a<4&&!t.landOk;a++){await sleep(W*(a+1));t.xd=false;try{await exLoadExtras(t);}catch(e){}}
+  if(!t.res[k])await exEvalAsync(t);   /* 2nd car on a tile that is already in memory / after the extras */
+  /* terrain: all measurable stretches must be measured – a result with a failed elevation lookup would miss its hill penalty */
+  for(let a=0;a<4;a++){const o1=t.res[k];if(!o1||!o1.us.length)break;if(o1.topo&&!(t.elevFails>0))break;
+    if(a)await sleep(W);t.elevFails=0;o1.topo=false;try{await exLoadElev(t);}catch(e){}}
   const o=t.res[k];if(!o)throw new Error('no result');
-  return {k:t.k,carKey:k,landOk:!!t.landOk,topo:!!o.topo,usN:o.us.length,usKm:+(o.tk.bronze+o.tk.silver+o.tk.gold).toFixed(1),pack:exPackJ(o)};
+  const topoOk=!o.us.length||(!!o.topo&&!(t.elevFails>0));
+  return {k:t.k,carKey:k,landOk:!!t.landOk,xd:!!t.xd,topo:!!o.topo,topoOk,usN:o.us.length,usKm:+(o.tk.bronze+o.tk.silver+o.tk.gold).toFixed(1),pack:exPackJ(o)};
 }
 const exResKey=t=>'e5|'+t.k+'|'+exCarKey()+(t.xd?'|x8'+(t.landOk?'l':''):'');
 /* classification result per tile + car: from cache if known, else computed once, off the draw path, and stored */
@@ -2872,7 +2909,7 @@ function exExport(){
   const v=Object.values(rLoad());
   return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:3,exported:new Date().toISOString(),
     meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
-    settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed (50 = town)',car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
+    settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed inside the stretch (50 = town), f.m50 / f.m70 = share of the stretch in 50 / 70 km/h zones',model:Object.assign({id:"28 Oct: length + straightness dominate"},US_P),car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
     ratings:v};
 }
 const viewTxt=f=>{if(f.view==null||f.vo==null)return '';const cut=f.sight?Math.round((1-f.view/f.sight)*100):0;return `<p>👁 view ~${(f.view/1000).toFixed(1)} km${cut>=10?` (${cut}% cut by what stands beside the road)`:''}${f.wall>=.08?' · 🧱 noise wall':''}${f.tree>=.2?' · 🌳 tree-lined: nice to drive, just not the wide-open look':''}${f.traffic>=.45?' · 🚗 probably busy':''}</p>`;};
