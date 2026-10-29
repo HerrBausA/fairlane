@@ -85,12 +85,11 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
     for cid in cars:
         keys[cid] = await page.evaluate("id=>__flrp.exSetCar(id)", cid)
         os.makedirs(os.path.join(out, car_dir(cid)), exist_ok=True)
-    # a car whose algorithm / profile changed: its old results are void
+    # a car whose algorithm changed: the old results are KEPT as a fallback (the app uses them for areas that are not rebuilt yet,
+    # the files are overwritten area by area) and dropped from the manifest as soon as the new ones are complete – see the end
     for key in list(man['cars']):
         if key not in keys.values():
-            e = man['cars'].pop(key)
-            log(f"profile / algorithm changed – dropping old results of: {key}")
-            clear_dir(os.path.join(out, e.get('dir', 't')))
+            log(f"older results kept as a fallback until the new ones are complete: {key[:40]}…")
     for cid in cars:
         man['cars'].setdefault(keys[cid], {'dir': car_dir(cid), 'tiles': {}, 'built': None})['dir'] = car_dir(cid)
     if pois:
@@ -148,9 +147,9 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
                         res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
                         if not res or not res.get('pack'):
                             raise RuntimeError('incomplete result')
-                        if not res.get('landOk') or not res.get('xd') or not res.get('topoOk'):
+                        if not res.get('landOk') or not res.get('bldOk') or not res.get('xd') or not res.get('topoOk'):
                             # land use / extras / terrain data missing: the result would look worse (or better) than it is
-                            raise RuntimeError('data incomplete (land %s, extras %s, terrain %s) – will retry' % (res.get('landOk'), res.get('xd'), res.get('topoOk')))
+                            raise RuntimeError('data incomplete (land %s, buildings %s, extras %s, terrain %s) – will retry' % (res.get('landOk'), res.get('bldOk'), res.get('xd'), res.get('topoOk')))
                         d = car_dir(part)
                         with open(os.path.join(out, d, f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
                             json.dump(res['pack'], f, separators=(',', ':'))
@@ -183,6 +182,14 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
                 await asyncio.sleep(delay)
         todo = retry
     failed = [f"{i},{j}" for (i, j) in todo]
+    # new results complete for every requested area of a car → its older versions are no longer needed
+    for cid in cars:
+        cur = man['cars'][keys[cid]]
+        if all(cur['tiles'].get(f"{i},{j}", {}).get('v') == 2 for (i, j) in tiles):
+            for key in list(man['cars']):
+                if key not in keys.values() and man['cars'][key].get('dir') == cur.get('dir'):
+                    man['cars'].pop(key)
+                    log(f"new results complete – older version dropped from the manifest: {key[:40]}…")
     man['built'] = now()
     save_manifest(mpath, man)
     return done, failed, skipped
