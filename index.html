@@ -1049,7 +1049,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get exPoiVer(){return exPoiVer},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -2247,10 +2247,12 @@ function exEvid(rs,a,b,xt){
     if(xt.pole&&xt.pole(p))np++;
     if(xt.minor&&xt.minor(p,h))nm++;
     if(xt.rail&&xt.rail(p,h))nr++;
-    if(xt.land&&k%2===0)for(const q of [dest(p,(h+90)%360,45),dest(p,(h+270)%360,45)]){const v=xt.land(q);ln++;if(v==='forest')lf++;else if(v==='built')lb++;else if(v==='open')lo++;else lo+=.5;}
+    if(xt.land&&k%2===0)for(const q of [dest(p,(h+90)%360,45),dest(p,(h+270)%360,45)]){let v=xt.land(q);ln++;
+      if(xt.bldN&&v!=='forest'){const hb=xt.bldN(q);if(hb)v='built';else if(v==='built')v='sparse';}   /* with building data: houses decide, a residential area without houses beside the road is open */
+      if(v==='forest')lf++;else if(v==='built')lb++;else if(v==='open')lo++;else if(v==='sparse')lo+=.8;else lo+=.5;}
     /* view: is something standing right beside the road on each side? tree rows / hedges, noise walls, forest edge, houses */
-    if((xt.trees||xt.walls||xt.land)&&k%2===0)for(const sd of [90,270]){const q=dest(p,(h+sd)%360,16);vs++;
-      const w=xt.walls&&xt.walls(q),t=xt.trees&&xt.trees(q),L=xt.land&&xt.land(dest(p,(h+sd)%360,24)),bl=w||t||L==='forest'||L==='built';
+    if((xt.trees||xt.walls||xt.land||xt.bldB)&&k%2===0)for(const sd of [90,270]){const q=dest(p,(h+sd)%360,16);vs++;
+      const w=xt.walls&&xt.walls(q),t=xt.trees&&xt.trees(q),L=xt.land&&xt.land(dest(p,(h+sd)%360,24)),bl=w||t||L==='forest'||(xt.bldB?xt.bldB(q):L==='built');
       if(bl)vb++;if(t)vt++;if(w)vw++;}
   }
   if(vs){o.vo=1-vb/vs;o.tree=vt/vs;o.wall=vw/vs;}
@@ -2299,7 +2301,7 @@ function exSections(c,guardNear,xt){
       /* traffic is not in OSM: a guess from road class and distance to a town / city */
       const trf=exTraffic(c,x.pts[Math.floor(x.pts.length/2)],xt);
       let tn=0;for(let k=x.a+1;k<Math.min(x.b,hd.length);k++)tn+=an(hd[k],hd[k-1]);
-      const f={q:0,q0:0,poles:+ev.poles.toFixed(2),minor:+ev.minor.toFixed(2),rail:+ev.rail.toFixed(2),sig:sg_,len:+sg.len.toFixed(2),sight:Math.round(ss/sn),view:Math.round(sEff),vo:ev.vo==null?null:+ev.vo.toFixed(2),tree:+ev.tree.toFixed(2),wall:+ev.wall.toFixed(2),traffic:+trf.toFixed(2),straight:+(st/sn).toFixed(2),curv:Math.round(tn/Math.max(.06,sg.len)),open:ev.open==null?null:+ev.open.toFixed(2),forest:ev.forest==null?null:+ev.forest.toFixed(2),built:ev.built==null?null:+ev.built.toFixed(2),maxs:msMin,m50:m50==null?null:+m50.toFixed(2),m70:m70==null?null:+m70.toFixed(2),ev:xt?1:0,hw:c.hw,ref:c.ref||'',wid:c.wid};
+      const f={q:0,q0:0,poles:+ev.poles.toFixed(2),minor:+ev.minor.toFixed(2),rail:+ev.rail.toFixed(2),sig:sg_,len:+sg.len.toFixed(2),sight:Math.round(ss/sn),view:Math.round(sEff),vo:ev.vo==null?null:+ev.vo.toFixed(2),tree:+ev.tree.toFixed(2),wall:+ev.wall.toFixed(2),traffic:+trf.toFixed(2),straight:+(st/sn).toFixed(2),curv:Math.round(tn/Math.max(.06,sg.len)),open:ev.open==null?null:+ev.open.toFixed(2),forest:ev.forest==null?null:+ev.forest.toFixed(2),built:ev.built==null?null:+ev.built.toFixed(2),bo:xt&&xt.bldB?1:0,maxs:msMin,m50:m50==null?null:+m50.toFixed(2),m70:m70==null?null:+m70.toFixed(2),ev:xt?1:0,hw:c.hw,ref:c.ref||'',wid:c.wid};
       f.q0=+usQ(f.len,f.sight,hwF,f.straight).toFixed(3);f.q=+usModelQ(f).toFixed(3);   /* same function as the re-scoring of stored data → identical numbers */
       sg.tier=usTierQ(f.q,f.view);f.tier=sg.tier;f.guardNear=!!guardNear;sg.f=f;res.us.push(sg);});
   }
@@ -2333,7 +2335,7 @@ function exSections(c,guardNear,xt){
 }
 const EXU=UNPAVED,TLAT=.1,TLON=.15,MLAT=.035,MLON=.05,EXC={ok:'#2f9e44',warn:'#f08c00',bad:'#c92a2a'};
 EX.tiles=new Map();EX.run=0;EX.ver=0;EX.vis=[];EX.view=[];EX.ring=[];EX.sig='';
-const exTileKey=(i,j)=>i+','+j,exCarKey=()=>{const sig=car.name+'|'+car.curvLo+'|'+car.curvHi+'|'+car.tight+'|'+car.weight;if(exCarKey._s!==sig){exCarKey._s=sig;exCarKey._k=['algo9',car.name,car.curvLo,car.curvHi,car.tight,car.weight].join('|');}return exCarKey._k;};
+const exTileKey=(i,j)=>i+','+j,exCarKey=()=>{const sig=car.name+'|'+car.curvLo+'|'+car.curvHi+'|'+car.tight+'|'+car.weight;if(exCarKey._s!==sig){exCarKey._s=sig;exCarKey._k=['algo10',car.name,car.curvLo,car.curvHi,car.tight,car.weight].join('|');}return exCarKey._k;};
 const exCore=(i,j)=>({s:i*TLAT,n:(i+1)*TLAT,w:j*TLON,e:(j+1)*TLON});
 const inCore=(p,c)=>p[0]>=c.s&&p[0]<c.n&&p[1]>=c.w&&p[1]<c.e;
 function clipCore(lines,core){
@@ -2432,6 +2434,11 @@ function exNearFn(pts,rad){
   if(!pts.length)return null;const cl=.0008,cn=.0012,g=exGrid(pts,cl,cn);
   return p=>{const ci=Math.floor(p[0]/cl),cj=Math.floor(p[1]/cn);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=g.get((ci+a)+','+(cj+b));if(l&&l.some(r=>hav(r,p)<rad))return true;}return false;};
 }
+/* "built-up" = at least minN house centres within rad of the point (a loose row of houses is not a village) */
+function exCountFn(pts,rad,minN){
+  if(!pts.length)return ()=>false;const cl=.0008,cn=.0012,g=exGrid(pts,cl,cn);
+  return p=>{const ci=Math.floor(p[0]/cl),cj=Math.floor(p[1]/cn);let n=0;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=g.get((ci+a)+','+(cj+b));if(l)for(const r of l)if(hav(r,p)<rad&&++n>=minN)return true;}return false;};
+}
 function exRailFn(lines,dmin=10,dmax=200,tol=30){
   const segs=[];lines.forEach(l=>{const r=resample(l,100);for(let i=0;i<r.length-1;i++)segs.push({a:r[i],b:r[i+1],br:brg(r[i],r[i+1])%180,mid:[(r[i][0]+r[i+1][0])/2,(r[i][1]+r[i+1][1])/2]});});
   if(!segs.length)return null;const cl=.0015,cn=.0023,g=new Map();
@@ -2471,13 +2478,13 @@ function exLandFn(els){
 }
 function exDens(lines,step){const out=[];lines.forEach(l=>{for(let i=0;i<l.length-1;i++){const d=hav(l[i],l[i+1]),m=Math.max(1,Math.ceil(d/step));for(let k=0;k<m;k++)out.push([l[i][0]+(l[i+1][0]-l[i][0])*k/m,l[i][1]+(l[i+1][1]-l[i][1])*k/m]);}if(l.length)out.push(l[l.length-1]);});return out;}
 function exApplyExtras(t,x){
-  t.xt={alley:exNearFn(exDens(x.alley||[],10).concat(x.treeN||[]),13),trees:exNearFn(exDens(x.trees||[],18),14),walls:exNearFn(exDens(x.walls||[],18),14),towns:x.towns||[],pole:exNearFn(x.poles||[],30),minor:exRailFn(x.minor||[],4,45,30),sig:exNearFn((x.sig||[]).concat(x.rb||[]),45),rail:exRailFn(x.rails||[]),land:exLandFn(x.land||[])};t.xd=true;
+  t.xt={alley:exNearFn(exDens(x.alley||[],10).concat(x.treeN||[]),13),trees:exNearFn(exDens(x.trees||[],18),14),walls:exNearFn(exDens(x.walls||[],18),14),towns:x.towns||[],pole:exNearFn(x.poles||[],30),minor:exRailFn(x.minor||[],4,45,30),sig:exNearFn((x.sig||[]).concat(x.rb||[]),45),rail:exRailFn(x.rails||[]),land:exLandFn(x.land||[]),bldB:x.bld?(exNearFn(x.bld,14)||(()=>false)):null,bldN:x.bld?exCountFn(x.bld,45,3):null};   /* an empty list = really no houses near the roads */t.xd=true;
 }
-const exXKey=t=>'x8|'+t.k,exLKey=t=>'l5|'+t.k;
+const exXKey=t=>'x8|'+t.k,exLKey=t=>'l5|'+t.k,exBKey=t=>'b1|'+t.k;
 async function exPreX(t){
   if(t.xd)return;
-  const [h,g]=await Promise.all([exDbGet(exXKey(t),EXTTL.r),exDbGet(exLKey(t),EXTTL.r)]);
-  if(h&&h.x){const x=h.x;x.land=g&&g.land||[];t.landOk=!!(g&&g.land);exApplyExtras(t,x);}
+  const [h,g,bb]=await Promise.all([exDbGet(exXKey(t),EXTTL.r),exDbGet(exLKey(t),EXTTL.r),exDbGet(exBKey(t),EXTTL.r)]);
+  if(h&&h.x&&bb&&bb.b){const x=h.x;x.land=g&&g.land||[];t.landOk=!!(g&&g.land);x.bld=bb.b;t.bldOk=true;exApplyExtras(t,x);}   /* without cached building data the extras are loaded again (the other parts come from the cache) */
 }
 async function exLoadExtras(t){
   const c=t.core,B=`${(c.s-MLAT).toFixed(5)},${(c.w-MLON).toFixed(5)},${(c.n+MLAT).toFixed(5)},${(c.e+MLON).toFixed(5)}`;
@@ -2493,7 +2500,15 @@ node["place"~"^(city|town)$"](${B});out;
 node["natural"="tree"](${B});out skel;`;
   const landQ=`[out:json][timeout:60];
 (way["landuse"~"^(forest|farmland|meadow|orchard|vineyard|grass|farmyard|greenhouse_horticulture|plant_nursery|residential|commercial|industrial|retail|allotments|garages|construction)$"](${B});way["natural"~"^(wood|scrub|heath|grassland|wetland)$"](${B});relation["landuse"~"^(forest|farmland|meadow|residential|commercial|industrial|retail)$"](${B});relation["natural"="wood"](${B}););out geom tags qt;`;
-  const [lh,gh]=await Promise.all([exDbGet(exXKey(t),EXTTL.r),exDbGet(exLKey(t),EXTTL.r)]);
+  /* houses in the area: centre points of buildings (no garages / sheds) – a loose row of houses with gaps is NOT a village (land-use areas cannot tell the difference) */
+  const bldQ=`[out:json][timeout:60];way["building"]["building"!~"^(garage|garages|carport|shed|roof|hut|cabin|greenhouse|service|toilets|kiosk)$"](${B});out center qt;`;   /* plain bounding box: much cheaper for the public servers than "near roads" (around) queries */
+  const [lh,gh,bh]=await Promise.all([exDbGet(exXKey(t),EXTTL.r),exDbGet(exLKey(t),EXTTL.r),exDbGet(exBKey(t),EXTTL.r)]);
+  const getBld=async()=>{
+    if(bh&&bh.b)return bh.b;
+    const j=await overpass(bldQ,45000,55000),b=[];
+    j.elements.forEach(e=>{if(e.center)b.push([+e.center.lat.toFixed(5),+e.center.lon.toFixed(5)]);else if(e.lat!=null)b.push([+e.lat.toFixed(5),+e.lon.toFixed(5)]);});
+    exDbPut(exBKey(t),{b});return b;
+  };
   const getLight=async()=>{
     if(lh&&lh.x)return lh.x;
     const j=await overpass(lightQ,30000,40000),x={poles:[],rails:[],sig:[],rb:[],minor:[],trees:[],alley:[],treeN:[],walls:[],towns:[]};
@@ -2514,9 +2529,10 @@ node["natural"="tree"](${B});out skel;`;
     j.elements.forEach(e=>{const tg=e.tags||{};if(tg.landuse||tg.natural)land.push({type:e.type,tags:{landuse:tg.landuse,natural:tg.natural},geometry:e.geometry,members:e.members&&e.members.map(m=>({type:m.type,role:m.role,geometry:m.geometry}))});});
     exDbPut(exLKey(t),{land});return land;
   };
-  const [lr,gr]=await Promise.allSettled([getLight(),getLand()]);
+  const [lr,gr,br]=await Promise.allSettled([getLight(),getLand(),getBld()]);
   if(lr.status==='rejected'){t.xFails=(t.xFails||0)+1;throw lr.reason;}
   const x=Object.assign({},lr.value);x.land=gr.status==='fulfilled'?gr.value:[];t.landOk=gr.status==='fulfilled';   /* no land data: stretches simply get no openness bonus */
+  x.bld=br.status==='fulfilled'?br.value:null;t.bldOk=br.status==='fulfilled';   /* no building data: land-use areas stand in for houses (the old, stricter way) */
   exApplyExtras(t,x);
   t.res={};exDropG(t);await exResCache(t);
 }
@@ -2596,9 +2612,13 @@ function exManifest(){return _exMan||(_exMan=(async()=>{if(EX.noPre||location.pr
 async function exPreLoad(t){
   if(EX.noPre||t.preTried)return false;t.preTried=true;
   const m=await exManifest();if(!m)return false;
-  const ce=m.cars[exCarKey()];
-  if(!ce){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+Object.keys(m.cars).join('  ||  ');return false;}
-  if(!ce.tiles[t.k]||ce.tiles[t.k].v!==2){EX.preMiss=(EX.preMiss||0)+1;return false;}   /* v:2 = verified complete (land use + terrain); older entries may be incomplete → loaded live */
+  let ce=m.cars[exCarKey()];
+  /* while the robot rebuilds everything with a newer algorithm, areas that are not done yet are taken from the previous version (re-scored with today's model on load) */
+  const own=ce&&ce.tiles[t.k]&&ce.tiles[t.k].v===2;
+  if(!own){const le=m.cars[exCarKey().replace(/^algo\d+/,'algo9')];
+    if(le&&le.tiles[t.k]&&le.tiles[t.k].v===2){ce=le;EX.preOld=(EX.preOld||0)+1;}
+    else if(!ce){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+Object.keys(m.cars).join('  ||  ');return false;}
+    else{EX.preMiss=(EX.preMiss||0)+1;return false;}}   /* v:2 = verified complete (land use + terrain); older entries may be incomplete → loaded live */
   try{const r=await fetch('data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok){EX.preWhy='file data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json not found (HTTP '+r.status+')';return false;}const o=exUnpackJ(await r.json());
     t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;t.g=null;EX.preN=(EX.preN||0)+1;EX.preBuilt=ce.built||m.built;return true;}catch(e){return false;}
 }
@@ -2606,19 +2626,19 @@ async function exPreLoad(t){
 async function exPrebuild(i,j){
   EX.noPre=true;window.__flrpPatient=true;const t=exTileGet(i,j),k=exCarKey(),W=EX.buildWait==null?15000:EX.buildWait;
   await exLoadRoads(t);
-  if(!t.chains||!t.chains.length){const o0=t.res[k]||exEval(t);return {k:t.k,carKey:k,empty:true,usN:0,usKm:0,topo:true,topoOk:true,landOk:true,xd:true,pack:exPackJ(o0)};}
+  if(!t.chains||!t.chains.length){const o0=t.res[k]||exEval(t);return {k:t.k,carKey:k,empty:true,usN:0,usKm:0,topo:true,topoOk:true,landOk:true,bldOk:true,xd:true,pack:exPackJ(o0)};}
   if(!t.xd)await exLoadExtras(t);
   /* a result with missing land-use data gets no openness bonus (roads look worse than they are) – so ask again until it is there */
-  for(let a=0;a<4&&!t.landOk;a++){await sleep(W*(a+1));t.xd=false;try{await exLoadExtras(t);}catch(e){}}
+  for(let a=0;a<4&&!(t.landOk&&t.bldOk);a++){await sleep(W*(a+1));t.xd=false;try{await exLoadExtras(t);}catch(e){}}
   if(!t.res[k])await exEvalAsync(t);   /* 2nd car on a tile that is already in memory / after the extras */
   /* terrain: all measurable stretches must be measured – a result with a failed elevation lookup would miss its hill penalty */
   for(let a=0;a<4;a++){const o1=t.res[k];if(!o1||!o1.us.length)break;if(o1.topo&&!(t.elevFails>0))break;
     if(a)await sleep(W);t.elevFails=0;o1.topo=false;try{await exLoadElev(t);}catch(e){}}
   const o=t.res[k];if(!o)throw new Error('no result');
   const topoOk=!o.us.length||(!!o.topo&&!(t.elevFails>0));
-  return {k:t.k,carKey:k,landOk:!!t.landOk,xd:!!t.xd,topo:!!o.topo,topoOk,usN:o.us.length,usKm:+(o.tk.bronze+o.tk.silver+o.tk.gold).toFixed(1),pack:exPackJ(o)};
+  return {k:t.k,carKey:k,landOk:!!t.landOk,bldOk:!!t.bldOk,xd:!!t.xd,topo:!!o.topo,topoOk,usN:o.us.length,usKm:+(o.tk.bronze+o.tk.silver+o.tk.gold).toFixed(1),pack:exPackJ(o)};
 }
-const exResKey=t=>'e5|'+t.k+'|'+exCarKey()+(t.xd?'|x8'+(t.landOk?'l':''):'');
+const exResKey=t=>'e5|'+t.k+'|'+exCarKey()+(t.xd?'|x8'+(t.landOk?'l':'')+(t.bldOk?'b':''):'');
 /* classification result per tile + car: from cache if known, else computed once, off the draw path, and stored */
 async function exResCache(t){
   const k=exCarKey(),ck=exResKey(t);if(t.res[k])return;
@@ -2764,7 +2784,7 @@ function exSummary(capped){
   EX.view.forEach(t=>{if(exFailed(t,'roads'))errs.add('roads');if(exFailed(t,'pois'))errs.add('places');});
   if(R.haveRoads)bits.push(`${R.us.toFixed(0)} km US-feeling · ${R.sc.toFixed(0)} km scenic`);
   if($('#exShowPoi').checked)bits.push(`${R.pois.length} place${R.pois.length===1?'':'s'}`);
-  $('#exInfo').textContent=(bits.length?bits.join(' · ')+'.':'Nothing to show – tick something above.')+(capped?' Too much in view – loading the '+EXMAXT+' areas nearest the centre first; everything already loaded is shown across the map. Move or zoom to load more.':'')+(EX.preN?' ⚡ '+EX.preN+' area'+(EX.preN===1?'':'s')+' ready-made'+(EX.preBuilt?' (built '+String(EX.preBuilt).slice(0,10)+')':'')+(EX.poiPre?', places for '+EX.poiPre+' too':'')+'.':(EX.preWhy?' ⚡ ready-made data not used: '+EX.preWhy+'.':EX.preMiss?' ⚡ these '+EX.preMiss+' areas are not in the ready-made data (loaded live).':''))+(exRefining(exCfgOf())?' ⏳ refining surroundings & terrain…':'')+(errs.size?' ⚠ No answer from the server for: '+[...errs].join(', ')+' – move the map or press search again.':'');
+  $('#exInfo').textContent=(bits.length?bits.join(' · ')+'.':'Nothing to show – tick something above.')+(capped?' Too much in view – loading the '+EXMAXT+' areas nearest the centre first; everything already loaded is shown across the map. Move or zoom to load more.':'')+(EX.preN?' ⚡ '+EX.preN+' area'+(EX.preN===1?'':'s')+' ready-made'+(EX.preBuilt?' (built '+String(EX.preBuilt).slice(0,10)+')':'')+(EX.preOld?' – '+EX.preOld+' of them from the previous version, being rebuilt':'')+(EX.poiPre?', places for '+EX.poiPre+' too':'')+'.':(EX.preWhy?' ⚡ ready-made data not used: '+EX.preWhy+'.':EX.preMiss?' ⚡ these '+EX.preMiss+' areas are not in the ready-made data (loaded live).':''))+(exRefining(exCfgOf())?' ⏳ refining surroundings & terrain…':'')+(errs.size?' ⚠ No answer from the server for: '+[...errs].join(', ')+' – move the map or press search again.':'');
 }
 function exPoiObj(e,c){return {id:e.id,ll:e.ll,name:e.t.name||POI_CATS[c].label.replace(/s$/,''),cat:c,hours:e.t.opening_hours||'',site:e.t.website||e.t['contact:website']||''};}
 function exAgg(){
