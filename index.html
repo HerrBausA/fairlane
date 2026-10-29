@@ -448,6 +448,7 @@ h1.logo-title img{display:block;width:min(560px,52vw);height:auto;max-width:100%
 #drvBtns{display:flex;flex-direction:column;gap:8px;margin-top:auto;align-self:flex-end;width:108px}
 #drvBtns button{flex:none;min-height:58px;padding:4px 6px;line-height:1.15;font:400 15px 'Alfa Slab One',serif;border:3px solid #3b2d1b;background:var(--cream);box-shadow:3px 3px 0 rgba(0,0,0,.4);cursor:pointer}
 #drvBtns button.on{background:#ffd54a}
+#drvBtns .drvTier{display:flex;gap:4px}#drvBtns .drvTier button{min-height:46px;padding:0;flex:1;font-size:22px;line-height:1}
 #drvCtl{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between}
 #drvCtl button{min-height:44px;padding:0 12px;flex:1 1 auto;font:400 14px 'Special Elite',monospace;border:2px solid #3b2d1b;background:var(--cream);cursor:pointer}
 #drvFollow.on{background:#cfe8ff}
@@ -473,7 +474,7 @@ body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hid
 #carDet>summary h2{margin:-2px 0 0}#carDet[open]>summary h2{margin-bottom:10px}
 #carDet>summary:after{content:'▸';margin-left:auto;font-size:16px}#carDet[open]>summary:after{content:'▾'}
 #carSum{font:400 13px 'Special Elite',monospace;opacity:.9}#carDet[open] #carSum{display:none}
-@media (max-height:480px){#drvBtns{gap:5px;width:100px}#drvBtns button{min-height:40px;font-size:13px}#drvCtl button{min-height:38px}}
+@media (max-height:480px){#drvBtns{gap:5px;width:100px}#drvBtns button{min-height:40px;font-size:13px}#drvBtns .drvTier button{min-height:34px;font-size:18px}#drvCtl button{min-height:38px}}
 /* battery: phones get a cheap colour filter instead of the heavy SVG filter on every map tile; drive mode shows plain tiles */
 @media (pointer:coarse){
  .mstyle-atlas .leaflet-tile-pane{filter:sepia(.3) saturate(.85) contrast(1.04)}
@@ -696,7 +697,7 @@ body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hid
       <div id="exMapBtns"><button class="btn" id="exLoc2" type="button" title="Show my location" aria-label="Show my location">📍</button><button class="btn" id="exFs2" type="button" title="Full screen map" aria-label="Full screen map">⛶</button></div>
       <div id="exDrive" hidden>
         <div id="drvTop"><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small></div>
-        <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button></div>
+        <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div></div>
         <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
@@ -1049,7 +1050,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -1483,6 +1484,8 @@ function usEvQ(f){
   else if(f.maxs!=null)q-=f.maxs<=50?US_P.m50:f.maxs<=70?US_P.m70:0;                      /* older data: lowest limit anywhere on the road */
   if(f.vo!=null)q+=US_P.view*(clamp(((f.view||0)-700)/2000,0,1)-clamp(((f.sight||0)-700)/2000,0,1))-US_P.wall*clamp((f.wall||0)/.3,0,1)-US_P.tree*clamp((f.tree||0)/.4,0,1);
   if(f.traffic!=null)q-=US_P.traf*f.traffic;
+  /* a long straight is US-feeling even through village strips: all 12 rated stretches over 4 km were US-feeling, so the corrections may cost at most .15 there */
+  if((f.len||0)>=3.5&&(f.straight||0)>=.9&&q<-.15)q=-.15;
   return q;
 }
 const usModelQ=f=>usQ(f.len,f.sight,hwFof(f.hw),f.straight)+usEvQ(f);
@@ -2648,7 +2651,7 @@ async function exResCache(t){
 }
 function exFinish(t,k,us,sc,fe,av){
   const core=t.core,o={us:clipCore(us,core),sc:clipCore(sc,core),av:clipCore(av||[],core),fe:{ok:clipCore(fe.ok,core),warn:clipCore(fe.warn,core),bad:clipCore(fe.bad,core)}};
-  o.tk={bronze:0,silver:0,gold:0};o.us.forEach(l=>{let d=0;for(let i=1;i<l.length;i++)d+=hav(l[i-1],l[i]);o.tk[l.tier||'bronze']+=d/1000;});
+  o.tk={bronze:0,silver:0,gold:0};o.us.forEach(l=>{let d=0;for(let i=1;i<l.length;i++)d+=hav(l[i-1],l[i]);o.tk[exTier(l)]+=d/1000;});
   o.scKm=lenKm(o.sc);o.avKm=lenKm(o.av);o.fk={ok:lenKm(o.fe.ok),warn:lenKm(o.fe.warn),bad:lenKm(o.fe.bad)};
   return t.res[k]=o;
 }
@@ -2815,8 +2818,8 @@ function exBuild(t,k){
   if(k==='av'){g.casA=mk();g.av=mk();cas(g.casA,o.av||[],8);line(g.av,o.av||[],'#1b7a3a',4.5,'exAv');}
   if(k==='fe'){g.fe=mk();['bad','warn','ok'].forEach(z=>line(g.fe,o.fe[z],EXC[z],3.2,'exFe'));}
   if(k==='us'){g.casU=mk();g.us=mk();g.hit=mk();const tg=exCfgOf().tiers,tOn=z=>tg.includes(z[0]);g.tk=tg;
-    ['bronze','silver','gold'].forEach(z=>{if(!tOn(z))return;const ls=o.us.filter(l=>l.tier===z);cas(g.casU,ls,11);line(g.us,ls,TIERC[z],6.5,'exUs');});
-    o.us.filter(l=>tOn(l.tier||'bronze')).forEach(l=>{L.polyline(l,Object.assign({color:'#000',weight:22,opacity:0,lineCap:'round',lineJoin:'round'},exPane('exHit'))).addTo(g.hit).bindPopup(()=>rateHtml(l)).on('popupopen',()=>{EX.ratingFor=l;});});}
+    ['bronze','silver','gold'].forEach(z=>{if(!tOn(z))return;const ls=o.us.filter(l=>exTier(l)===z);cas(g.casU,ls,11);line(g.us,ls,TIERC[z],6.5,'exUs');});
+    o.us.filter(l=>tOn(exTier(l))).forEach(l=>{L.polyline(l,Object.assign({color:'#000',weight:22,opacity:0,lineCap:'round',lineJoin:'round'},exPane('exHit'))).addTo(g.hit).bindPopup(()=>rateHtml(l)).on('popupopen',()=>{EX.ratingFor=l;});});}
 }
 function exTileSet(t,k,layer,on){
   if(on&&!t.on[k]){EX.map.addLayer(layer);t.on[k]=true;}
@@ -2913,12 +2916,27 @@ const rLoad=()=>{const a=store.get('flrp_ratings',{});let ch=false;Object.values
 const r5=v=>+v.toFixed(5);
 const rKey=l=>{if(l._rk)return l._rk;const a=l[0],b=l[l.length-1];return l._rk=[a[0],a[1],b[0],b[1]].map(v=>v.toFixed(4)).join(',');};
 function rSample(l){const n=Math.min(12,l.length),o=[];for(let i=0;i<n;i++){const p=l[Math.round(i*(l.length-1)/Math.max(1,n-1))];o.push([r5(p[0]),r5(p[1])]);}return o;}
+/* YOUR tier: for US-feeling stretches you can say bronze / silver / gold by your own feeling – it replaces the algorithm's colour everywhere (map, drive mode, counts); the rating keeps what the algorithm said (tier) for the next calibration */
+let _mine=null;
+function exMine(){if(_mine)return _mine;const m={},a=rLoad();for(const k in a){const x=a[k];if(x.mine&&(x.r==='us'||x.r==='both'))m[k]=x.mine;}return _mine=m;}
+const exTier=l=>exMine()[rKey(l)]||l.tier||'bronze';
+const TIER_EM={gold:'🥇',silver:'🥈',bronze:'🥉'};
+const rMk=(l,r,old)=>{const x={r,t:new Date().toISOString().slice(0,16),f:l.f||{},tier:l.tier||'',pts:rSample(l)};if(old&&old.mine&&(r==='us'||r==='both'))x.mine=old.mine;return x;};
+function exRedrawRates(){try{EX.tiles.forEach(t=>exDropG(t));EX.ver++;exSyncSoon();}catch(e){}}
 function exSetRate(l,r){
-  const all=rLoad(),k=rKey(l);
-  if(!r||(all[k]&&all[k].r===r))delete all[k];   /* tapping the same rating again removes it */
-  else all[k]={r,t:new Date().toISOString().slice(0,16),f:l.f||{},tier:l.tier||'',pts:rSample(l)};
+  const all=rLoad(),k=rKey(l),old=all[k];_mine=null;
+  if(!r||(old&&old.r===r))delete all[k];   /* tapping the same rating again removes it */
+  else all[k]=rMk(l,r,old);
   store.set('flrp_ratings',all);exRateUi();
-  try{EX.tiles.forEach(t=>exDropG(t));EX.ver++;exSyncSoon();}catch(e){}   /* not-good roads disappear from / return to the normal layers */
+  exRedrawRates();   /* not-good roads disappear from / return to the normal layers */
+}
+function exSetMine(l,t){
+  const all=rLoad(),k=rKey(l);let x=all[k];_mine=null;
+  if(!x)x=all[k]=rMk(l,'us',null);                 /* choosing a tier means: this one feels US-feeling */
+  else if(x.r==='fun')x.r='both';else if(x.r==='no')x.r='us';
+  if(!t||x.mine===t)delete x.mine;else x.mine=t;   /* same tier again = back to the algorithm's */
+  store.set('flrp_ratings',all);exRateUi();exRedrawRates();
+  return x.mine||'';
 }
 function exRateUi(){
   const all=rLoad(),v=Object.values(all),c={us:0,fun:0,both:0,no:0,miss:0};v.forEach(x=>{c[x.r]=(c[x.r]||0)+1;if(x.f&&x.f.missed)c.miss++;});
@@ -2928,16 +2946,19 @@ function exRateUi(){
 function exExport(){
   const v=Object.values(rLoad());
   return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:3,exported:new Date().toISOString(),
-    meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
+    meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},mine:'optional per rating: the tier (bronze/silver/gold) the user chose by personal feeling for a US-feeling stretch; tier = what the algorithm said',missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
     settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed inside the stretch (50 = town), f.m50 / f.m70 = share of the stretch in 50 / 70 km/h zones',model:Object.assign({id:"28 Oct: length + straightness dominate"},US_P),car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
     ratings:v};
 }
 const viewTxt=f=>{if(f.view==null||f.vo==null)return '';const cut=f.sight?Math.round((1-f.view/f.sight)*100):0;return `<p>👁 view ~${(f.view/1000).toFixed(1)} km${cut>=10?` (${cut}% cut by what stands beside the road)`:''}${f.wall>=.08?' · 🧱 noise wall':''}${f.tree>=.2?' · 🌳 tree-lined: nice to drive, just not the wide-open look':''}${f.traffic>=.45?' · 🚗 probably busy':''}</p>`;};
+const tierBtns=l=>{const m=exMine()[rKey(l)]||'';return ['bronze','silver','gold'].map(t=>`<button class="btn sm ${m===t?'red':''}" data-mine="${t}">${TIER_EM[t]} ${TIERN[t]}</button>`).join('');};
 function rateHtml(l){
   const cur=(rLoad()[rKey(l)]||{}).r,f=l.f||{};
-  return `<div class="pop"><h4>${TIERN[l.tier||'bronze']} · US-feeling candidate</h4><p>${(f.len||0).toFixed(1)} km · sight line ~${((f.sight||0)/1000).toFixed(1)} km · ${f.hw||''}${f.ref?' '+esc(f.ref):''}</p>${f.topo?`<p>⛰ ${topoWord(f.topo.gpk)} terrain · ${f.topo.gpk} m/km relief · road ${f.topo.exp>=0?'+':''}${f.topo.exp} m above its surroundings</p>`:''}${viewTxt(f)}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div>${osmLinks(f.wid?'w'+f.wid:'',l[Math.floor(l.length/2)])}</div>`;
+  return `<div class="pop"><h4>${TIERN[exTier(l)]} · US-feeling candidate</h4><p>${(f.len||0).toFixed(1)} km · sight line ~${((f.sight||0)/1000).toFixed(1)} km · ${f.hw||''}${f.ref?' '+esc(f.ref):''}</p>${f.topo?`<p>⛰ ${topoWord(f.topo.gpk)} terrain · ${f.topo.gpk} m/km relief · road ${f.topo.exp>=0?'+':''}${f.topo.exp} m above its surroundings</p>`:''}${viewTxt(f)}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div><p style="margin-top:8px">Your tier <small>(replaces the colour${l.tier?'; the algorithm says '+TIERN[l.tier]:''})</small></p><div class="ratebtns">${tierBtns(l)}</div>${osmLinks(f.wid?'w'+f.wid:'',l[Math.floor(l.length/2)])}</div>`;
 }
 document.addEventListener('click',e=>{
+  const m=e.target.closest&&e.target.closest('[data-mine]');
+  if(m&&EX.ratingFor){exSetMine(EX.ratingFor,m.dataset.mine);EX.map.closePopup();if(EX.layMark)EX.layMark.clearLayers();exBadges();return;}
   const b=e.target.closest&&e.target.closest('[data-rate]');if(!b||!EX.ratingFor)return;
   exSetRate(EX.ratingFor,rateNext((rLoad()[rKey(EX.ratingFor)]||{}).r,b.dataset.rate));EX.map.closePopup();if(EX.layMark)EX.layMark.clearLayers();exBadges();
 });
@@ -3092,7 +3113,7 @@ $('#exRateCopy').onclick=async()=>{
   try{await navigator.clipboard.writeText(JSON.stringify(exExport()));toast('Ratings copied – paste them into your chat with Claude.',5000);}
   catch(err){const ta=document.createElement('textarea');ta.value=JSON.stringify(exExport());document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Ratings copied – paste them into your chat with Claude.',5000);}catch(e2){toast('Could not copy – use the download button.');}ta.remove();}
 };
-$('#exRateClear').onclick=()=>{if(!Object.keys(rLoad()).length)return;if(confirm('Delete all your ratings?')){store.set('flrp_ratings',{});exRateUi();if(EX.map)exBadges();}};
+$('#exRateClear').onclick=()=>{if(!Object.keys(rLoad()).length)return;if(confirm('Delete all your ratings?')){store.set('flrp_ratings',{});_mine=null;exRateUi();if(EX.map)exBadges();}};
 exRateUi();
 $('#exList').onclick=e=>{const it=e.target.closest('.poiitem');if(!it||!EX.agg)return;const p=(EX.agg.vis||[]).find(x=>x.id===it.dataset.id);if(p&&p.m){EX.map.setView(p.ll,Math.max(EX.map.getZoom(),14));p.m.openPopup();}};
 ['exShowUs','exShowSc','exShowPoi','exShowFe','exShowAv','exTg','exTs','exTb'].forEach(id=>$('#'+id).onchange=()=>{if(id==='exShowPoi'&&$('#exShowPoi').checked&&!$$('#exCats input:checked').length)POI_DEF.forEach(k=>{const i=$('#exCats input[value='+k+']');if(i)i.checked=true;});if(EX.map)exSchedule();});
@@ -3221,9 +3242,9 @@ function drvEval(){
     const l=near.c.pts,f=l.f||{};DRV.cur=l;DRV.curI=near.i;DRV.recent=l;DRV.recentT=Date.now();
     let dir=0;if(head!=null){const sb=brg(l[near.i],l[near.i+1]);dir=Math.abs(((sb-head+540)%360)-180)<90?1:-1;}
     const rem=dir?drvAlong(l,near.i,dir):null;
-    now=`${{gold:'🥇',silver:'🥈',bronze:'🥉'}[l.tier||'bronze']} ${TIERN[l.tier||'bronze']} US-feeling · ${f.hw||'road'}${f.ref?' '+f.ref:''}`;
+    const tr=exTier(l);now=`${TIER_EM[tr]} ${TIERN[tr]} US-feeling${tr!==(l.tier||'bronze')?' (your tier)':''} · ${f.hw||'road'}${f.ref?' '+f.ref:''}`;
     ahead=`${(f.len||0).toFixed(1)} km stretch${rem!=null?' · '+drvKm(rem)+' to go':''}${f.view!=null?' · view ~'+(f.view/1000).toFixed(1)+' km':f.sight?' · sight ~'+(f.sight/1000).toFixed(1)+' km':''}${f.wall>=.08?' · noise wall':''}${f.tree>=.2?' · tree-lined':''}${f.traffic>=.45?' · busy?':''}${f.topo?' · '+topoWord(f.topo.gpk)+' terrain':''}`;
-    const nx=drvAhead(us,l,head);if(nx&&rem!=null&&nx.d>20)ahead+=` · next: ${TIERN[nx.l.tier||'bronze']} in ${drvKm(nx.d)}`;
+    const nx=drvAhead(us,l,head);if(nx&&rem!=null&&nx.d>20)ahead+=` · next: ${TIERN[exTier(nx.l)]} in ${drvKm(nx.d)}`;
   }else{
     DRV.cur=null;
     if(!loaded){now='Loading road data here…';ahead='Keep going – classification follows the map data.';}
@@ -3239,11 +3260,12 @@ function drvEval(){
         now='➕ Your added road · '+(f.hw||'road')+(f.ref?' '+f.ref:'');ahead=`${(f.len||0).toFixed(1)} km piece · sight ~${((f.sight||0)/1000).toFixed(1)} km · rate it with the buttons`;
       }else now='No classified stretch here';
       const nx=DRV.cur?null:drvAhead(us,null,head);
-      if(!DRV.cur)ahead=nx?`Ahead: ${{gold:'🥇',silver:'🥈',bronze:'🥉'}[nx.l.tier||'bronze']} ${TIERN[nx.l.tier||'bronze']} US-feeling stretch in ${drvKm(nx.d)} (${((nx.l.f||{}).len||0).toFixed(1)} km)`:'Nothing US-feeling within 6 km ahead.';
+      if(!DRV.cur)ahead=nx?`Ahead: ${TIER_EM[exTier(nx.l)]} ${TIERN[exTier(nx.l)]} US-feeling stretch in ${drvKm(nx.d)} (${((nx.l.f||{}).len||0).toFixed(1)} km)`:'Nothing US-feeling within 6 km ahead.';
     }
   }
   const tgt=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null),rt=tgt?(rLoad()[rKey(tgt)]||{}).r:'';
   $$('#drvBtns [data-drate]').forEach(b=>{const r=b.dataset.drate;b.classList.toggle('on',!!rt&&(r==='no'?rt==='no':(rt===r||rt==='both')));b.disabled=!tgt;b.style.opacity=tgt?1:.5;});
+  {const ok=!!(tgt&&tgt.tier),mt=ok?(exMine()[rKey(tgt)]||''):'';$$('#drvBtns [data-dmine]').forEach(b=>{b.classList.toggle('on',!!mt&&b.dataset.dmine===mt);b.disabled=!ok;b.style.opacity=ok?1:.5;});}
   $('#drvNow').textContent=now;$('#drvAhead').textContent=ahead+(tgt&&!DRV.cur?' · (rating applies to the stretch you just left)':'');
 }
 function drvOnPos(pos){
@@ -3386,6 +3408,12 @@ $('#drvAdd').onclick=async()=>{
   }finally{b.disabled=false;b.textContent='➕ Add this road';}
 };
 $('#drvStop').onclick=()=>drvStop();$('#drvFollow').onclick=()=>drvFollowSet(!DRV.follow);
+$$('#drvBtns [data-dmine]').forEach(b=>b.onclick=()=>{
+  const l=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null);if(!l||!l.tier)return;
+  const m=exSetMine(l,b.dataset.dmine);exBadges();drvEval();
+  try{navigator.vibrate&&navigator.vibrate(40);}catch(e){}
+  toast(m?'Your tier: '+TIER_EM[m]+' '+TIERN[m]:'Back to the algorithm\'s tier',1800);
+});
 $$('#drvBtns [data-drate]').forEach(b=>b.onclick=()=>{
   const l=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null);if(!l)return;
   const cur=(rLoad()[rKey(l)]||{}).r,nx=rateNext(cur,b.dataset.drate);exSetRate(l,nx);exBadges();drvEval();
