@@ -484,6 +484,26 @@ body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hid
 }
 .driving .leaflet-tile-pane{filter:none!important}
 @media (prefers-reduced-motion:reduce){.drvpulse:before{animation:none}}
+/* ===== iPad / tablets (iOS 16 Safari engine, also used by Chrome on iOS) ===== */
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+@supports (height:100dvh){@media (min-width:901px){   /* the Safari toolbar no longer makes the page taller than the screen */
+  body{min-height:100dvh}.sidebar{max-height:calc(100dvh - 100px)}.map-wrap,#view-rb,.exside{height:calc(100dvh - 152px)}
+}}
+@media (pointer:coarse){
+  :root{--flake:linear-gradient(transparent,transparent)}   /* the noise texture is an SVG filter: slow to paint on older iPads */
+  .leaflet-container{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  .leaflet-bar a{width:38px;height:38px;line-height:38px}
+  .leaflet-container .leaflet-popup-content{font-size:15px}
+  .leaflet-popup-close-button{width:34px!important;height:34px!important;font-size:24px!important;line-height:32px!important}
+}
+@media (pointer:coarse) and (min-width:901px){   /* iPad landscape / portrait ≥ 901 px: desktop layout, but finger-sized and without zoom-in on fields */
+  input[type=text],input[type=time],input[type=number],select,textarea{font-size:16px;min-height:44px}
+  .btn,.tab,.chip{min-height:44px}.chip{padding-top:8px;padding-bottom:8px}
+  .mapctl select{font-size:16px}
+  .exside{width:380px}.exside label{padding-top:3px;padding-bottom:3px}.exside input[type=checkbox]{width:22px;height:22px}
+  .ratebtns .btn{min-height:44px;font-size:15px;padding:6px 14px}
+}
+
 </style>
 </head>
 <body>
@@ -1050,7 +1070,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -2387,7 +2407,7 @@ function exApplyRoads(t,ways,rails){
   const cell=new Map();
   rails.forEach(r=>{const k=Math.floor(r[0]/.0008)+','+Math.floor(r[1]/.0012);const a=cell.get(k);if(a)a.push(r);else cell.set(k,[r]);});
   t.near=rails.length?(p=>{const ci=Math.floor(p[0]/.0008),cj=Math.floor(p[1]/.0012);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=cell.get((ci+a)+','+(cj+b));if(l&&l.some(r=>hav(r,p)<70))return true;}return false;}):null;
-  t.ways=ways;t.chains=exChains(ways);t.rails=rails.length;t.res={};t.g=null;
+  t.ways=ways;t.chains=exChains(ways);t.rails=rails.length;t.res={};exDropG(t);
 }
 async function exLoadRoads(t){
   if(await exPreLoad(t))return;
@@ -2623,7 +2643,7 @@ async function exPreLoad(t){
     else if(!ce){EX.preWhy='car settings differ – page: '+exCarKey()+' / ready-made: '+Object.keys(m.cars).join('  ||  ');return false;}
     else{EX.preMiss=(EX.preMiss||0)+1;return false;}}   /* v:2 = verified complete (land use + terrain); older entries may be incomplete → loaded live */
   try{const r=await fetch('data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json');if(!r.ok){EX.preWhy='file data/'+(ce.dir||'t')+'/'+t.k.replace(',','_')+'.json not found (HTTP '+r.status+')';return false;}const o=exUnpackJ(await r.json());
-    t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;t.g=null;EX.preN=(EX.preN||0)+1;EX.preBuilt=ce.built||m.built;return true;}catch(e){return false;}
+    t.chains=[];t.ways=[];t.rails=0;t.xd=true;t.pre=true;t.res={};t.res[exCarKey()]=o;exDropG(t);EX.preN=(EX.preN||0)+1;EX.preBuilt=ce.built||m.built;return true;}catch(e){return false;}
 }
 /* build script entry: load one tile exactly like the app does, finish it (extras, land, terrain) and hand back the result as plain JSON */
 async function exPrebuild(i,j){
@@ -2713,7 +2733,8 @@ function exTilesIn(b){
   const c=EX.map.getCenter();out.sort((a,b)=>Math.hypot(a.core.s+TLAT/2-c.lat,a.core.w+TLON/2-c.lng)-Math.hypot(b.core.s+TLAT/2-c.lat,b.core.w+TLON/2-c.lng));
   return out;
 }
-const EXMAXT=12,EXRING=8,EXDRAW=70;
+const TABLET=(()=>{try{return matchMedia('(pointer:coarse)').matches&&Math.max(screen.width,screen.height)>=700;}catch(e){return false;}})();   /* iPad: fewer areas drawn at once = smooth panning on 2 GB devices */
+const EXMAXT=TABLET?9:12,EXRING=8,EXDRAW=TABLET?42:70;
 const exCfg=()=>({cats:$$('#exCats input:checked').map(i=>i.value),us:$('#exShowUs').checked,sc:$('#exShowSc').checked,fe:$('#exShowFe').checked,av:$('#exShowAv').checked,tiers:($('#exTg').checked?'g':'')+($('#exTs').checked?'s':'')+($('#exTb').checked?'b':''),poi:$('#exShowPoi').checked});
 function exCfgOf(){const c=exCfg();c.roads=c.us||c.sc||c.fe||c.av;c.pois=c.poi&&c.cats.length>0;c.fcats=[...new Set([...POI_DEF,...c.cats])];return c;}   /* fcats: fetched in the background even while hidden */
 const exFailed=(t,k)=>t.fail[k]&&Date.now()-t.fail[k]<20000;
@@ -2811,6 +2832,8 @@ function exBuild(t,k){
   const isBad=l=>{if(!bad.length)return false;if(badKey.has(rKey(l)))return true;   /* rated not good: gone from the normal layers (shown on demand under "My not-good roads") */
     const m=l[Math.floor(l.length/2)];return bad.some(x=>{for(let i=0;i<x.pts.length-1;i++){if(Math.abs(x.pts[i][0]-m[0])>.002)continue;if(exDSeg(m,x.pts[i],x.pts[i+1]).d<35)return true;}return false;});};
   const o=bad.length?Object.assign({},o0,{us:o0.us.filter(l=>!isBad(l)),sc:o0.sc.filter(l=>!isBad(l))}):o0;
+  const GK={sc:['casS','sc'],av:['casA','av'],fe:['fe'],us:['casU','us','hit']}[k]||[];   /* never leave an older copy of these layers on the map */
+  GK.forEach(n=>{try{if(g[n]&&EX.map.hasLayer(g[n]))EX.map.removeLayer(g[n]);}catch(e){}t.on[n]=false;});
   const mk=()=>L.layerGroup();
   const cas=(grp,ls,w)=>{if(ls.length)L.polyline(ls,Object.assign({color:'#fff',weight:w,opacity:.9,lineCap:'round',lineJoin:'round',interactive:false},exPane('exCas'))).addTo(grp);};
   const line=(grp,ls,col,w,pane)=>{if(ls.length)L.polyline(ls,Object.assign({color:col,weight:w,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false},exPane(pane))).addTo(grp);};
@@ -2821,11 +2844,12 @@ function exBuild(t,k){
     ['bronze','silver','gold'].forEach(z=>{if(!tOn(z))return;const ls=o.us.filter(l=>exTier(l)===z);cas(g.casU,ls,11);line(g.us,ls,TIERC[z],6.5,'exUs');});
     o.us.filter(l=>tOn(exTier(l))).forEach(l=>{L.polyline(l,Object.assign({color:'#000',weight:22,opacity:0,lineCap:'round',lineJoin:'round'},exPane('exHit'))).addTo(g.hit).bindPopup(()=>rateHtml(l)).on('popupopen',()=>{EX.ratingFor=l;});});}
 }
-function exTileSet(t,k,layer,on){
-  if(on&&!t.on[k]){EX.map.addLayer(layer);t.on[k]=true;}
-  else if(!on&&t.on[k]){EX.map.removeLayer(layer);t.on[k]=false;}
+function exTileSet(t,k,layer,on){   /* the map itself is asked, not a flag: a stale flag can never leave a line stuck on the map */
+  const has=EX.map.hasLayer(layer);
+  if(on&&!has)EX.map.addLayer(layer);else if(!on&&has)EX.map.removeLayer(layer);
+  t.on[k]=on;
 }
-function exDropG(t){if(!t.g)return;['casS','casU','casA','sc','av','fe','us','hit'].forEach(k=>{if(t.on[k]&&t.g[k]){EX.map.removeLayer(t.g[k]);}t.on[k]=false;});t.g=null;}
+function exDropG(t){if(!t.g)return;['casS','casU','casA','sc','av','fe','us','hit'].forEach(k=>{try{if(t.g[k]&&EX.map&&EX.map.hasLayer(t.g[k]))EX.map.removeLayer(t.g[k]);}catch(e){}t.on[k]=false;});t.g=null;}
 function exDropP(t){if(t.pg&&t.on.poi){EX.map.removeLayer(t.pg);t.on.poi=false;}t.pg=null;t.pm=null;}
 function exPoiBuild(t,cats){
   exDropP(t);const g=L.layerGroup(),pm=new Map();
@@ -2845,7 +2869,7 @@ function exSync(full){
     const on=want.has(t);
     if(t.chains&&on&&(c.us||c.sc||c.fe||c.av)){
       if(t.g&&t.g.key!==ck)exDropG(t);
-      if(t.g&&t.g.us&&t.g.tk!==c.tiers){['casU','us','hit'].forEach(k=>{if(t.on[k]&&t.g[k])EX.map.removeLayer(t.g[k]);t.on[k]=false;t.g[k]=null;});}
+      if(t.g&&t.g.us&&t.g.tk!==c.tiers){['casU','us','hit'].forEach(k=>{if(t.g[k]&&EX.map.hasLayer(t.g[k]))EX.map.removeLayer(t.g[k]);t.on[k]=false;t.g[k]=null;});}
       ['sc','av','fe','us'].forEach(k=>{if(c[k]&&!(t.g&&t.g[k])){if(built<2||full){exBuild(t,k);built++;}else more=true;}});
     }
     if(t.g){const g=t.g,S_=(k,l,w)=>{if(l)exTileSet(t,k,l,w);};
@@ -3443,7 +3467,9 @@ $('#btnPlan').onclick=plan;$('#btnReroll').onclick=plan;
 setTimeout(()=>loadSeeds().catch(()=>{}),2500);   /* look up the named photo spots in the background so a search never waits for them */
 fillCarSel();showCar();updDistHint();renderRoadbook();
 setTimeout(()=>locate(true),400);
-window.addEventListener('resize',()=>map.invalidateSize());
+{let rzT=0;const rz=()=>{clearTimeout(rzT);rzT=setTimeout(()=>{   /* rotating an iPad: every map that exists must re-measure itself */
+  [map,window.EX&&EX.map,window.TR&&TR.map].forEach(m=>{try{m&&m.invalidateSize({animate:false});}catch(e){}});try{window.EX&&EX.map&&exSyncSoon();}catch(e){}},200);};
+window.addEventListener('resize',rz);window.addEventListener('orientationchange',rz);}
 })();
 
 /* foldable legends: give the map back its full space */
