@@ -445,10 +445,10 @@ h1.logo-title img{display:block;width:min(560px,52vw);height:auto;max-width:100%
 #drvTop{background:var(--cream);border:2px solid #3b2d1b;box-shadow:3px 3px 0 rgba(0,0,0,.4);padding:8px 12px;font:400 15px 'Special Elite',monospace;align-self:stretch}
 #drvNow{font:400 18px 'Alfa Slab One',serif;color:var(--azure-dd);line-height:1.25}
 #drvAhead{margin-top:2px}#drvGps{display:block;color:#6b6250;margin-top:2px}
-#drvBtns{display:flex;flex-direction:column;gap:8px;margin-top:auto;align-self:flex-end;width:108px}
+#drvBtns{display:flex;flex-direction:column;gap:8px;margin-top:auto;align-self:flex-end;width:min(150px,38vw)}
 #drvBtns button{flex:none;min-height:58px;padding:4px 6px;line-height:1.15;font:400 15px 'Alfa Slab One',serif;border:3px solid #3b2d1b;background:var(--cream);box-shadow:3px 3px 0 rgba(0,0,0,.4);cursor:pointer}
 #drvBtns button.on{background:#ffd54a}
-#drvBtns .drvTier{display:flex;gap:4px}#drvBtns .drvTier button{min-height:46px;padding:0;flex:1;font-size:22px;line-height:1}
+#drvBtns .drvTier{display:flex;gap:5px}#drvBtns .drvTier button{min-height:66px;min-width:0;padding:0;flex:1 1 0;font-size:30px;line-height:1;overflow:hidden}
 #drvCtl{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between}
 #drvCtl button{min-height:44px;padding:0 12px;flex:1 1 auto;font:400 14px 'Special Elite',monospace;border:2px solid #3b2d1b;background:var(--cream);cursor:pointer}
 #drvFollow.on{background:#cfe8ff}
@@ -464,7 +464,7 @@ body[data-mtab="explore"] .sidebar,body[data-mtab="train"] .sidebar{display:none
 body[data-mtab="explore"] .app,body[data-mtab="train"] .app{grid-template-columns:1fr}
 body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hidden}
 .osml{font-size:12px;margin:8px 0 2px}.osml a{color:var(--azure-dd)}
-.ratebtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.ratebtns .btn{font-size:13px;padding:5px 10px}
+.ratebtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.ratebtns .btn{font-size:13px;padding:5px 10px}.ratebtns .btn.tierb{font-size:18px;padding:8px 16px;min-height:48px}
 .rbadge{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;background:#fffdf5;border:2px solid #3b2d1b;box-shadow:1px 2px 3px rgba(0,0,0,.45)}
 .rbadge.yes,.rbadge.us{border-color:#ffb800}.rbadge.fun{border-color:#1b6fc4}.rbadge.both{border-color:#2f9e44;width:40px;border-radius:12px}.rbadge.no{border-color:#c92a2a}.exmark #exMap{cursor:crosshair}
 
@@ -474,7 +474,7 @@ body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hid
 #carDet>summary h2{margin:-2px 0 0}#carDet[open]>summary h2{margin-bottom:10px}
 #carDet>summary:after{content:'▸';margin-left:auto;font-size:16px}#carDet[open]>summary:after{content:'▾'}
 #carSum{font:400 13px 'Special Elite',monospace;opacity:.9}#carDet[open] #carSum{display:none}
-@media (max-height:480px){#drvBtns{gap:5px;width:100px}#drvBtns button{min-height:40px;font-size:13px}#drvBtns .drvTier button{min-height:34px;font-size:18px}#drvCtl button{min-height:38px}}
+@media (max-height:480px){#drvBtns{gap:5px;width:130px}#drvBtns button{min-height:40px;font-size:13px}#drvBtns .drvTier button{min-height:48px;font-size:24px}#drvCtl button{min-height:38px}}
 /* battery: phones get a cheap colour filter instead of the heavy SVG filter on every map tile; drive mode shows plain tiles */
 @media (pointer:coarse){
  .mstyle-atlas .leaflet-tile-pane{filter:sepia(.3) saturate(.85) contrast(1.04)}
@@ -484,6 +484,25 @@ body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hid
 }
 .driving .leaflet-tile-pane{filter:none!important}
 @media (prefers-reduced-motion:reduce){.drvpulse:before{animation:none}}
+/* drive mode: heading-up map (the road ahead is always at the top), own zoom buttons, pull-down menu in full screen */
+.exwrap.driving{overflow:hidden}
+.driving .leaflet-control-container{display:none}
+#drvAttr{display:block;color:#6b6250;font-size:10px;margin-top:1px}
+.exwrap.hu #exMap{inset:auto!important;position:absolute;width:var(--hd)!important;height:var(--hd)!important;left:var(--hl)!important;top:var(--ht)!important;transform-origin:50% 50%;will-change:transform;pointer-events:none}
+.exwrap.hu .poi,.exwrap.hu .rbadge{transform:rotate(var(--hu,0deg));transition:transform .6s}
+#drvZ{position:absolute;left:8px;top:46%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+#drvZ button{width:52px;height:52px;padding:0;font:400 28px/1 'Alfa Slab One',serif;border:3px solid #3b2d1b;background:var(--cream);box-shadow:3px 3px 0 rgba(0,0,0,.4);cursor:pointer}
+#drvHu.on{background:#cfe8ff}
+#fsPull{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:1600;display:none}
+.exwrap.fsOn #fsPull{display:block}
+#fsPull button{min-width:140px;height:30px;padding:0 16px;border:2px solid #3b2d1b;border-top:0;border-radius:0 0 16px 16px;background:var(--cream);font:400 13px 'Special Elite',monospace;box-shadow:0 2px 0 rgba(0,0,0,.4);cursor:pointer}
+.exwrap.fsOn #exDrive{padding-top:max(36px,calc(env(safe-area-inset-top) + 30px))}
+#fsMenu{position:absolute;left:0;right:0;top:0;z-index:3500;display:flex;flex-direction:column;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 12px;background:var(--cream);border-bottom:4px solid #3b2d1b;box-shadow:0 8px 20px rgba(0,0,0,.5);transform:translateY(-110%);transition:transform .25s;visibility:hidden}
+#fsMenu.open{transform:none;visibility:visible}
+#fsMenu .fsRow{display:flex;gap:6px;flex-wrap:wrap}
+#fsMenu button{flex:1 1 auto;min-height:52px;padding:0 10px;font:400 15px 'Special Elite',monospace;border:2px solid #3b2d1b;background:#fff;cursor:pointer}
+#fsMenu small{color:#6b6250;font:400 12px 'Special Elite',monospace}
+
 /* ===== iPad / tablets (iOS 16 Safari engine, also used by Chrome on iOS) ===== */
 html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 @supports (height:100dvh){@media (min-width:901px){   /* the Safari toolbar no longer makes the page taller than the screen */
@@ -715,10 +734,17 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
       <div id="exBusy" hidden>Searching…</div>
       <button class="btn red" id="exDriveBtn" type="button">🚗 Drive mode</button>
       <div id="exMapBtns"><button class="btn" id="exLoc2" type="button" title="Show my location" aria-label="Show my location">📍</button><button class="btn" id="exFs2" type="button" title="Full screen map" aria-label="Full screen map">⛶</button></div>
+      <div id="fsPull"><button type="button" id="fsPullBtn" aria-label="Open menu">▾ Menu</button></div>
+      <div id="fsMenu" aria-hidden="true">
+        <div class="fsRow"><button type="button" data-fsm="plan">🧭 Plan</button><button type="button" data-fsm="atlas">🗺️ Map</button><button type="button" data-fsm="rb">📖 Roadbook</button><button type="button" data-fsm="explore">🔎 Explore</button><button type="button" data-fsm="train">🎯 Train</button></div>
+        <div class="fsRow"><button type="button" id="fsHu">🧭 Heading up</button><button type="button" id="fsFull">⛶ Exit full screen</button><button type="button" id="fsEnd">✕ End drive</button><button type="button" id="fsClose">▴ Close</button></div>
+        <small>Swipe down from the top edge of the screen to open this menu.</small>
+      </div>
       <div id="exDrive" hidden>
-        <div id="drvTop"><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small></div>
+        <div id="drvTop"><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small><small id="drvAttr">© OpenStreetMap contributors</small></div>
+        <div id="drvZ"><button type="button" id="drvZi" aria-label="Zoom in">＋</button><button type="button" id="drvZo" aria-label="Zoom out">－</button></div>
         <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div></div>
-        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
+        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvHu">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
     </div>
@@ -1070,7 +1096,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -2975,7 +3001,7 @@ function exExport(){
     ratings:v};
 }
 const viewTxt=f=>{if(f.view==null||f.vo==null)return '';const cut=f.sight?Math.round((1-f.view/f.sight)*100):0;return `<p>👁 view ~${(f.view/1000).toFixed(1)} km${cut>=10?` (${cut}% cut by what stands beside the road)`:''}${f.wall>=.08?' · 🧱 noise wall':''}${f.tree>=.2?' · 🌳 tree-lined: nice to drive, just not the wide-open look':''}${f.traffic>=.45?' · 🚗 probably busy':''}</p>`;};
-const tierBtns=l=>{const m=exMine()[rKey(l)]||'';return ['bronze','silver','gold'].map(t=>`<button class="btn sm ${m===t?'red':''}" data-mine="${t}">${TIER_EM[t]} ${TIERN[t]}</button>`).join('');};
+const tierBtns=l=>{const m=exMine()[rKey(l)]||'';return ['bronze','silver','gold'].map(t=>`<button class="btn sm tierb ${m===t?'red':''}" data-mine="${t}">${TIER_EM[t]} ${TIERN[t]}</button>`).join('');};
 function rateHtml(l){
   const cur=(rLoad()[rKey(l)]||{}).r,f=l.f||{};
   return `<div class="pop"><h4>${TIERN[exTier(l)]} · US-feeling candidate</h4><p>${(f.len||0).toFixed(1)} km · sight line ~${((f.sight||0)/1000).toFixed(1)} km · ${f.hw||''}${f.ref?' '+esc(f.ref):''}</p>${f.topo?`<p>⛰ ${topoWord(f.topo.gpk)} terrain · ${f.topo.gpk} m/km relief · road ${f.topo.exp>=0?'+':''}${f.topo.exp} m above its surroundings</p>`:''}${viewTxt(f)}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div><p style="margin-top:8px">Your tier <small>(replaces the colour${l.tier?'; the algorithm says '+TIERN[l.tier]:''})</small></p><div class="ratebtns">${tierBtns(l)}</div>${osmLinks(f.wid?'w'+f.wid:'',l[Math.floor(l.length/2)])}</div>`;
@@ -3303,7 +3329,7 @@ function drvOnPos(pos){
   DRV.ll=ll;
   if(document.hidden)return;   /* screen off / other app: just remember the position, no drawing or evaluating */
   if(c.heading!=null&&!isNaN(c.heading)&&(c.speed==null||c.speed>1.5))DRV.head=c.heading;else{const h=drvHeading();if(h!=null)DRV.head=h;}
-  const ic=drvIcon(DRV.head);
+  const ic=drvIcon(DRV.head);drvHuHead();
   if(!DRV.mk){DRV.mk=L.marker(ll,{icon:ic,interactive:false,zIndexOffset:2000}).addTo(EX.map);DRV.icH=DRV.head;}
   else{DRV.mk.setLatLng(ll);if(DRV.mk.setIcon&&(DRV.icH==null!==(DRV.head==null)||(DRV.head!=null&&Math.abs(((DRV.head-DRV.icH+540)%360)-180)>=12))){DRV.mk.setIcon(ic);DRV.icH=DRV.head;}}   /* rebuild the arrow only when it really turned – saves battery */
   if(L.circleMarker){if(!DRV.cm){DRV.cm=L.circleMarker(ll,{radius:10,color:'#fff',weight:4,fillColor:'#1b6fc4',fillOpacity:1,interactive:false}).addTo(EX.map);}else DRV.cm.setLatLng(ll);if(DRV.cm.bringToFront)DRV.cm.bringToFront();}
@@ -3325,17 +3351,49 @@ function drvOnErr(e){
   $('#drvAhead').textContent=gpsHelp(why);
   if(why==='denied')drvStop(true);
 }
+/* ---- heading-up: the map turns so that the driving direction always points to the top of the screen ---- */
+const HU={deg:0,init:false,lay:false};
+const drvHuPref=()=>{try{return localStorage.getItem('flrp_drvhu')!=='0';}catch(e){return true;}};   /* on by default */
+const drvHuOn=()=>!!(DRV.on&&DRV.hu&&DRV.follow);
+function drvHuLayout(){
+  const w=$('#exWrap'),m=$('#exMap');if(!w||!m||!EX.map)return;
+  if(!drvHuOn()){
+    if(HU.lay){HU.lay=false;w.classList.remove('hu');m.style.transform='';m.style.transition='';['--hd','--hl','--ht','--hu'].forEach(v=>w.style.removeProperty(v));try{EX.map.dragging.enable();}catch(e){}EX.map.invalidateSize({animate:false});}
+    drvHuBtns();return;
+  }
+  const W=w.clientWidth,H=w.clientHeight;if(!W||!H)return;
+  const px=W/2,py=Math.round(H*.55),r=Math.ceil(Math.max(Math.hypot(px,py),Math.hypot(px,H-py))),D=2*r+8;   /* the turning square must still cover every corner of the screen */
+  w.style.setProperty('--hd',D+'px');w.style.setProperty('--hl',Math.round(px-D/2)+'px');w.style.setProperty('--ht',Math.round(py-D/2)+'px');
+  const first=!HU.lay;w.classList.add('hu');HU.lay=true;
+  try{EX.map.dragging.disable();}catch(e){}
+  if(first){HU.deg=DRV.head!=null?DRV.head:HU.deg;HU.init=true;m.style.transition='none';}
+  m.style.transform=`rotate(${-HU.deg}deg)`;w.style.setProperty('--hu',HU.deg+'deg');
+  if(first){void m.offsetWidth;m.style.transition='transform .6s ease-out';}
+  EX.map.invalidateSize({animate:false,pan:false});
+  if(DRV.ll)EX.map.setView(DRV.ll,EX.map.getZoom(),{animate:false});
+  drvHuBtns();
+}
+function drvHuHead(){
+  if(!drvHuOn()||DRV.head==null||!HU.lay)return;
+  const d=(((DRV.head-HU.deg)%360)+540)%360-180;
+  if(Math.abs(d)<3)return;
+  HU.deg+=d;
+  $('#exMap').style.transform=`rotate(${-HU.deg}deg)`;$('#exWrap').style.setProperty('--hu',HU.deg+'deg');
+  try{const el=DRV.mk&&DRV.mk.getElement&&DRV.mk.getElement(),c=el&&el.querySelector('.drvcar');if(c)c.style.transform=`rotate(${HU.deg}deg)`;}catch(e){}   /* the arrow turns with the map, so on screen it always points up */
+}
+function drvHuBtns(){const on=!!(DRV.hu),t=on?'🧭 Heading up':'🧭 North up';['#drvHu','#fsHu'].forEach(q=>{const b=$(q);if(b){b.textContent=t;b.classList.toggle('on',on);}});}
+function drvHuToggle(){DRV.hu=!DRV.hu;try{localStorage.setItem('flrp_drvhu',DRV.hu?'1':'0');}catch(e){}if(DRV.hu&&!DRV.follow)drvFollowSet(true);else{drvHuLayout();if(DRV.ll&&DRV.follow)drvCenter(DRV.ll,Math.max(EX.map.getZoom(),13),false);}toast(DRV.hu?'Heading up: the road ahead is at the top. Zoom with ＋ / －.':'North up: map fixed, north at the top.',2600);}
 /* put the position a bit above the middle so the rating buttons at the bottom never cover it */
-function drvCenter(ll,z,anim){try{if(EX.map.project&&EX.map.unproject&&EX.map.getSize){const h=EX.map.getSize().y,pt=EX.map.project(ll,z).add([0,Math.round(h*.14)]);EX.map.setView(EX.map.unproject(pt,z),z,{animate:!!anim,duration:.5});return;}}catch(e){}EX.map.setView(ll,z,{animate:!!anim,duration:.5});}
-function drvFollowSet(on){DRV.follow=on;$('#drvFollow').classList.toggle('on',on);$('#drvFollow').textContent=on?'⌖ Following':'⌖ Re-centre';if(on&&DRV.ll){DRV.vll=DRV.ll;drvCenter(DRV.ll,Math.max(EX.map.getZoom(),13),true);}}
+function drvCenter(ll,z,anim){try{if(drvHuOn()){EX.map.setView(ll,z,{animate:!!anim,duration:.5});return;}if(EX.map.project&&EX.map.unproject&&EX.map.getSize){const h=EX.map.getSize().y,pt=EX.map.project(ll,z).add([0,Math.round(h*.14)]);EX.map.setView(EX.map.unproject(pt,z),z,{animate:!!anim,duration:.5});return;}}catch(e){}EX.map.setView(ll,z,{animate:!!anim,duration:.5});}
+function drvFollowSet(on){DRV.follow=on;drvHuLayout();$('#drvFollow').classList.toggle('on',on);$('#drvFollow').textContent=on?'⌖ Following':'⌖ Re-centre';if(on&&DRV.ll){DRV.vll=DRV.ll;drvCenter(DRV.ll,Math.max(EX.map.getZoom(),13),true);}}
 async function drvStart(){
   if(DRV.on)return;
   if(!navigator.geolocation||gpsInsecure()){toast(gpsHelp('insecure'),9000);return;}
-  exInit();exLocStop();DRV.on=true;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
+  exInit();exLocStop();DRV.on=true;DRV.hu=drvHuPref();HU.lay=false;HU.init=false;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
   const us=$('#exShowUs');if(us&&!us.checked){us.checked=true;us.dispatchEvent(new Event('change'));}
   $('#exWrap').classList.add('driving');document.body.classList.add('drv');$('#exDrive').hidden=false;$('#drvNow').textContent='Waiting for GPS…';$('#drvAhead').textContent='';$('#drvGps').textContent='';
-  drvFollowSet(true);
-  setTimeout(()=>{EX.map.invalidateSize();exSync();},80);
+  drvFollowSet(true);fsSync();
+  setTimeout(()=>{if(drvHuOn())drvHuLayout();else EX.map.invalidateSize();exSync();},80);
   DRV.lastFix=0;
   try{DRV.watch=navigator.geolocation.watchPosition(drvOnPos,drvOnErr,{enableHighAccuracy:true,maximumAge:0,timeout:30000});}catch(e){drvOnErr(e);}
   /* safety net: a network/coarse watch in parallel – if only 'approximate location' was granted or the sky is blocked, the dot still appears (the GPS fixes take over as soon as they arrive) */
@@ -3351,7 +3409,7 @@ function drvFull(on){
     else if(!on&&isF){const x=document.exitFullscreen||document.webkitExitFullscreen;if(x){const p=x.call(document);if(p&&p.catch)p.catch(()=>{});}}}catch(e){}
 }
 const drvFullSync=()=>{const isF=!!(document.fullscreenElement||document.webkitFullscreenElement),b=$('#drvFull');if(b){b.classList.toggle('on',isF);b.textContent=isF?'⛶ Exit full screen':'⛶ Full screen';}
-  if(window.EX&&EX.map)setTimeout(()=>{try{EX.map.invalidateSize();}catch(e){}},150);};
+  fsSync();if(EX.map)setTimeout(()=>{try{if(drvHuOn())drvHuLayout();else EX.map.invalidateSize();}catch(e){}},150);};
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,drvFullSync));
 $('#drvFull').onclick=()=>{const isF=!!(document.fullscreenElement||document.webkitFullscreenElement);
   if(!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen)){toast('This browser has no full-screen mode for web pages. On iPhone: Share › Add to Home Screen, then open it from there.',7000);return;}
@@ -3412,7 +3470,8 @@ function drvStop(silent){
   try{if(DRV.watch!=null)navigator.geolocation.clearWatch(DRV.watch);}catch(e){}DRV.watch=null;
   try{if(DRV.wl)DRV.wl.release();}catch(e){}DRV.wl=null;
   if(DRV.mk){try{EX.map.removeLayer(DRV.mk);}catch(e){}DRV.mk=null;}if(DRV.ac){try{EX.map.removeLayer(DRV.ac);}catch(e){}DRV.ac=null;}if(DRV.cm){try{EX.map.removeLayer(DRV.cm);}catch(e){}DRV.cm=null;}try{if(DRV.watch2!=null)navigator.geolocation.clearWatch(DRV.watch2);}catch(e){}DRV.watch2=null;drvFull(false);
-  $('#exWrap').classList.remove('driving');document.body.classList.remove('drv');$('#exDrive').hidden=true;$$('.drvToggle').forEach(b=>b.textContent='🚗 Start drive mode');
+  DRV.hu=false;HU.lay=true;drvHuLayout();DRV.hu=drvHuPref();
+  $('#exWrap').classList.remove('driving');document.body.classList.remove('drv');fsSync();fsMenu(false);$('#exDrive').hidden=true;$$('.drvToggle').forEach(b=>b.textContent='🚗 Start drive mode');
   setTimeout(()=>{EX.map.invalidateSize();},80);
   if(!silent){const n=Object.keys(rLoad()).length;toast(`Drive ended. ${n} stretches rated so far – export them in the Training or Explore tab.`,6000);}
 }
@@ -3432,6 +3491,28 @@ $('#drvAdd').onclick=async()=>{
   }finally{b.disabled=false;b.textContent='➕ Add this road';}
 };
 $('#drvStop').onclick=()=>drvStop();$('#drvFollow').onclick=()=>drvFollowSet(!DRV.follow);
+/* ---- pull-down menu in full screen / drive mode ---- */
+const fsIsF=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+function fsSync(){const w=$('#exWrap');if(!w)return;const on=!!(window.DRV&&DRV.on)||(fsIsF()&&(document.fullscreenElement||document.webkitFullscreenElement)===w);w.classList.toggle('fsOn',on);if(!on)fsMenu(false);}
+let fsTm=0;
+function fsMenu(open){const m=$('#fsMenu');if(!m)return;clearTimeout(fsTm);
+  if(open){$('#fsHu').hidden=!DRV.on;$('#fsEnd').hidden=!DRV.on;$('#fsFull').hidden=!fsIsF();drvHuBtns();fsTm=setTimeout(()=>fsMenu(false),12000);}
+  m.classList.toggle('open',!!open);m.setAttribute('aria-hidden',open?'false':'true');}
+function fsGo(m){fsMenu(false);if(window.DRV&&DRV.on)drvStop(true);const f=fsIsF();if(f){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}}
+  setTimeout(()=>{const b=$('#mnav button[data-m="'+m+'"]');if(b)b.click();},f?300:0);}
+$('#fsPullBtn').onclick=()=>fsMenu(!$('#fsMenu').classList.contains('open'));
+$$('#fsMenu [data-fsm]').forEach(b=>b.onclick=()=>fsGo(b.dataset.fsm));
+$('#fsClose').onclick=()=>fsMenu(false);
+$('#fsHu').onclick=()=>{drvHuToggle();fsMenu(false);};
+$('#fsFull').onclick=()=>{fsMenu(false);try{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}};
+$('#fsEnd').onclick=()=>{fsMenu(false);drvStop();};
+$('#drvHu').onclick=drvHuToggle;
+$('#drvZi').onclick=()=>{try{EX.map.zoomIn(1,{animate:false});}catch(e){}};$('#drvZo').onclick=()=>{try{EX.map.zoomOut(1,{animate:false});}catch(e){}};
+{let fsT=null;const w=$('#exWrap');   /* swipe down from the very top edge (first 36 px) opens the menu – the tab above is the fallback */
+ w.addEventListener('touchstart',e=>{if(!w.classList.contains('fsOn')||e.touches.length!==1){fsT=null;return;}const t=e.touches[0],r=w.getBoundingClientRect();fsT=(t.clientY-r.top<=36)?t.clientY:null;},{passive:true});
+ w.addEventListener('touchmove',e=>{if(fsT!=null&&e.touches[0]&&e.touches[0].clientY-fsT>36){fsT=null;fsMenu(true);}},{passive:true});
+ document.addEventListener('click',e=>{const m=$('#fsMenu');if(m&&m.classList.contains('open')&&!m.contains(e.target)&&e.target.id!=='fsPullBtn')fsMenu(false);},true);}
+
 $$('#drvBtns [data-dmine]').forEach(b=>b.onclick=()=>{
   const l=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null);if(!l||!l.tier)return;
   const m=exSetMine(l,b.dataset.dmine);exBadges();drvEval();
@@ -3468,7 +3549,8 @@ setTimeout(()=>loadSeeds().catch(()=>{}),2500);   /* look up the named photo spo
 fillCarSel();showCar();updDistHint();renderRoadbook();
 setTimeout(()=>locate(true),400);
 {let rzT=0;const rz=()=>{clearTimeout(rzT);rzT=setTimeout(()=>{   /* rotating an iPad: every map that exists must re-measure itself */
-  [map,window.EX&&EX.map,window.TR&&TR.map].forEach(m=>{try{m&&m.invalidateSize({animate:false});}catch(e){}});try{window.EX&&EX.map&&exSyncSoon();}catch(e){}},200);};
+  try{if(window.DRV&&drvHuOn())drvHuLayout();}catch(e){}
+  [map,EX.map,TR.map].forEach(m=>{try{m&&!(window.DRV&&drvHuOn()&&m===EX.map)&&m.invalidateSize({animate:false});}catch(e){}});try{EX.map&&exSyncSoon();}catch(e){}},200);};
 window.addEventListener('resize',rz);window.addEventListener('orientationchange',rz);}
 })();
 
