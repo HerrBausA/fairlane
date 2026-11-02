@@ -77,7 +77,10 @@ def normalise_manifest(man):
     return man
 
 async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print, cars=None, pois=True, rest_base=120):
-    """page: a page that has the planner loaded. Returns (done, failed, skipped) – done/failed/skipped are AREAS."""
+    """page: a page that has the planner loaded – or a LIST of such pages: then that many areas are processed at the same time
+    (only useful with a map server of our own, see --overpass-local). Returns (done, failed, skipped) – AREAS."""
+    pages = page if isinstance(page, (list, tuple)) else [page]
+    page = pages[0]
     cars = cars or CAR_IDS
     mpath = os.path.join(out, 'manifest.json')
     man = normalise_manifest(load_manifest(mpath))
@@ -117,34 +120,42 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
     out_of_time = False
     # several passes: every area gets ONE try per pass; failures wait for the next pass, so one overloaded
     # server does not eat the whole time budget. Between passes the robot rests so the servers can recover.
+    # With several pages (own map server) the areas of a pass are shared between the pages.
+    par = len(pages) > 1
     for rnd in range(1, 5):
         if not todo or out_of_time:
             break
         if rnd > 1:
-            rest = rest_base * (rnd - 1)
+            rest = (rest_base if not par else min(rest_base, 20)) * (rnd - 1)
             log(f"pass {rnd}: {len(todo)} areas left – resting {rest} s so the map servers can recover")
             await asyncio.sleep(rest)
-        retry, streak = [], 0
-        for (i, j) in todo:
+        retry, state = [], {'streak': 0}
+        queue = asyncio.Queue()
+        for it in todo:
+            queue.put_nowait(it)
+
+        async def one_area(pg, i, j):
+            nonlocal saved_n, out_of_time
             k = f"{i},{j}"
             if (time.time() - t0) / 60 > max_minutes:
-                log(f"time budget of {max_minutes} min used up – stopping; run again to continue")
+                if not out_of_time:
+                    log(f"time budget of {max_minutes} min used up – stopping; run again to continue")
                 out_of_time = True
                 retry.append((i, j))
-                continue
+                return
             progress = False
             for part in missing(i, j):
                 try:
                     if part == 'poi':
-                        res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuildPois(i,j)", [i, j]), tile_timeout)
+                        res = await asyncio.wait_for(pg.evaluate("([i,j])=>__flrp.exPrebuildPois(i,j)", [i, j]), tile_timeout)
                         with open(os.path.join(out, 'p', f"{i}_{j}.json"), 'w', encoding='utf-8') as f:
                             json.dump({'pois': res['pois']}, f, separators=(',', ':'), ensure_ascii=False)
                         man['poi']['tiles'][k] = res['n']
                         man['poi']['built'] = now()
                         log(f"[{k}] places: {res['n']}")
                     else:
-                        await page.evaluate("id=>__flrp.exSetCar(id)", part)
-                        res = await asyncio.wait_for(page.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
+                        await pg.evaluate("id=>__flrp.exSetCar(id)", part)
+                        res = await asyncio.wait_for(pg.evaluate("([i,j])=>__flrp.exPrebuild(i,j)", [i, j]), tile_timeout)
                         if not res or not res.get('pack'):
                             raise RuntimeError('incomplete result')
                         if not res.get('landOk') or not res.get('bldOk') or not res.get('xd') or not res.get('topoOk'):
@@ -166,20 +177,30 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
                     log(f"  area {k} / {part} failed (pass {rnd}): {str(e)[:100]}")
             if missing(i, j):
                 retry.append((i, j))
-                streak = 0 if progress else streak + 1
-                if streak >= 3:
+                state['streak'] = 0 if progress else state['streak'] + 1
+                if state['streak'] >= 3 and not par:
                     log("  3 failures in a row – short rest")
                     await asyncio.sleep(90)
-                    streak = 0
+                    state['streak'] = 0
             else:
-                streak = 0
+                state['streak'] = 0
                 done.append(k)
                 try:
-                    await page.evaluate("([i,j])=>__flrp.exForget(i,j)", [i, j])   # free the memory of this area
+                    await pg.evaluate("([i,j])=>__flrp.exForget(i,j)", [i, j])   # free the memory of this area
                 except Exception:
                     pass
                 log(f"[{skipped + len(done)}/{len(tiles)}] area {k} complete")
                 await asyncio.sleep(delay)
+
+        async def worker(pg):
+            while True:
+                try:
+                    i, j = queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    return
+                await one_area(pg, i, j)
+
+        await asyncio.gather(*[worker(pg) for pg in pages])
         todo = retry
     failed = [f"{i},{j}" for (i, j) in todo]
     # new results complete for every requested area of a car → its older versions are no longer needed
@@ -202,6 +223,52 @@ def serve(directory):
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     return httpd, httpd.server_address[1]
 
+async def local_status_ok(url, tries=1, wait=0):
+    """is our own Overpass server answering? (GET …/api/status)"""
+    import urllib.request
+    st = url.rsplit('/api/', 1)[0] + '/api/status'
+    for n in range(tries):
+        try:
+            with urllib.request.urlopen(st, timeout=10) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            pass
+        if n + 1 < tries:
+            await asyncio.sleep(wait)
+    return False
+
+async def install_local_route(ctx, local, log=print):
+    """Every Overpass request of the planner is answered by OUR server. The planner asks several public servers one after another
+    ('hedged'); only the first one is forwarded, the others are cut off at once so our server never gets the same question twice."""
+    primary = 'overpass-api.de'
+    stats = {'n': 0, 'err': 0}
+    async def handler(route):
+        req = route.request
+        host = req.url.split('/')[2]
+        if host != primary:
+            await route.abort()
+            return
+        stats['n'] += 1
+        try:
+            if req.method == 'GET' and '?' in req.url:
+                target = local + '?' + req.url.split('?', 1)[1]
+                resp = await route.fetch(url=target, timeout=240000)
+            else:
+                resp = await route.fetch(url=local, method='POST', post_data=req.post_data, headers={'content-type': 'application/x-www-form-urlencoded;charset=UTF-8'}, timeout=240000)
+            hdr = {k: v for k, v in resp.headers.items() if k.lower() not in ('content-encoding', 'content-length', 'transfer-encoding')}
+            hdr['access-control-allow-origin'] = '*'
+            await route.fulfill(status=resp.status, headers=hdr, body=await resp.body())
+        except Exception as e:
+            stats['err'] += 1
+            log(f"  local map server did not answer: {str(e)[:100]}")
+            try:
+                await route.abort()
+            except Exception:
+                pass
+    await ctx.route(lambda u: ('/api/interpreter' in u) and ('overpass' in u), handler)
+    return stats
+
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--html', default='index.html')
@@ -211,36 +278,55 @@ async def main():
     ap.add_argument('--bbox', help='south,west,north,east (instead of centre/radius)')
     ap.add_argument('--max-minutes', type=float, default=300)
     ap.add_argument('--delay', type=float, default=2.0)
+    ap.add_argument('--print-bbox', action='store_true', help='print west,south,east,north of the region (plus one area of margin) and exit – used to cut the map extract for our own server')
+    ap.add_argument('--overpass-local', help='URL of a map server of our own (…/api/interpreter): all map-data requests of the page go there instead of the public servers')
+    ap.add_argument('--workers', type=int, default=0, help='areas processed at the same time (default: 1 with public servers, 3 with --overpass-local)')
     a = ap.parse_args()
     from playwright.async_api import async_playwright
     bbox = tuple(float(x) for x in a.bbox.split(',')) if a.bbox else None
     center = tuple(float(x) for x in a.center.split(','))
     tiles = tiles_for(center, a.radius_km, bbox)
+    if a.print_bbox:
+        ii = [i for i, _ in tiles]; jj = [j for _, j in tiles]
+        print(f"{(min(jj) - 1) * TLON:.4f},{(min(ii) - 1) * TLAT:.4f},{(max(jj) + 2) * TLON:.4f},{(max(ii) + 2) * TLAT:.4f}")
+        return
     print(f"{len(tiles)} areas in the region")
     html_dir = os.path.dirname(os.path.abspath(a.html)) or '.'
     httpd, port = serve(html_dir)
+    local = a.overpass_local
+    if local and not await local_status_ok(local, tries=3, wait=10):
+        print(f"own map server {local} does not answer – using the public servers instead")
+        local = None
+    workers = a.workers or (3 if local else 1)
+    delay = min(a.delay, 0.3) if local else a.delay
+    print(f"map data from: {'OWN server ' + local if local else 'public servers'} · {workers} area(s) at a time")
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        ctx = await b.new_context(viewport={'width': 1200, 'height': 800})
-        page = await ctx.new_page()
-        page.on('pageerror', lambda e: print('page error:', e))
-        await page.goto(f"http://127.0.0.1:{port}/{os.path.basename(a.html)}")
-        page.on('console', lambda m: print('page console:', m.type, m.text[:300]) if m.type in ('error', 'warning') else None)
-        try:
-            await page.wait_for_function("(()=>{try{return typeof window.__flrp.exPrebuild==='function'}catch(e){return false}})()", timeout=240000, polling=1000)
-        except Exception:
-            info = await page.evaluate("({leaflet: typeof L, flrp: typeof window.__flrp, prebuild: window.__flrp ? typeof window.__flrp.exPrebuild : 'n/a', title: document.title})")
-            print('\nThe planner page did not become ready:', info)
-            if info.get('prebuild') == 'function':
-                print('-> The page became ready only after the wait ran out (slow start). Just run again.')
-            elif info.get('leaflet') == 'undefined':
-                print('-> The map library (Leaflet) could not be loaded from the internet.')
-            elif info.get('prebuild') != 'function':
-                print('-> index.html in the repository is an OLD planner version without the build hook.')
-                print('   Upload the newest planner file again, named exactly index.html (Add file -> Upload files, same name replaces it).')
-            await b.close()
-            sys.exit(1)
-        done, failed, skipped = await build(page, tiles, a.out, a.max_minutes, a.delay)
+        pages = []
+        for w in range(workers):
+            ctx = await b.new_context(viewport={'width': 1200, 'height': 800})
+            if local:
+                await install_local_route(ctx, local)
+            page = await ctx.new_page()
+            page.on('pageerror', lambda e: print('page error:', e))
+            await page.goto(f"http://127.0.0.1:{port}/{os.path.basename(a.html)}")
+            page.on('console', lambda m: print('page console:', m.type, m.text[:300]) if m.type in ('error', 'warning') else None)
+            try:
+                await page.wait_for_function("(()=>{try{return typeof window.__flrp.exPrebuild==='function'}catch(e){return false}})()", timeout=240000, polling=1000)
+            except Exception:
+                info = await page.evaluate("({leaflet: typeof L, flrp: typeof window.__flrp, prebuild: window.__flrp ? typeof window.__flrp.exPrebuild : 'n/a', title: document.title})")
+                print('\nThe planner page did not become ready:', info)
+                if info.get('prebuild') == 'function':
+                    print('-> The page became ready only after the wait ran out (slow start). Just run again.')
+                elif info.get('leaflet') == 'undefined':
+                    print('-> The map library (Leaflet) could not be loaded from the internet.')
+                elif info.get('prebuild') != 'function':
+                    print('-> index.html in the repository is an OLD planner version without the build hook.')
+                    print('   Upload the newest planner file again, named exactly index.html (Add file -> Upload files, same name replaces it).')
+                await b.close()
+                sys.exit(1)
+            pages.append(page)
+        done, failed, skipped = await build(pages, tiles, a.out, a.max_minutes, delay)
         await b.close()
     httpd.shutdown()
     print(f"finished: {len(done)} built, {skipped} already there, {len(failed)} failed")
