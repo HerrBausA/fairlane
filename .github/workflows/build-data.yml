@@ -70,33 +70,37 @@ jobs:
           osmium extract --bbox="$BB" --strategy=smart --overwrite -o region.osm.bz2 full.osm.pbf
           rm -f full.osm.pbf; ls -l region.osm.bz2
           docker volume create ovdb
+          ready() { for k in $(seq 1 $1); do curl -fs http://127.0.0.1:12345/api/status | grep -q "Connected as" && return 0; sleep 20; done; return 1; }
+          ok() { echo "own map server is ready (after $(( ($(date +%s) - T0) / 60 )) min in total)"; echo "LOCAL_OVP=http://127.0.0.1:12345/api/interpreter" >> "$GITHUB_ENV"; exit 0; }
+          # 1) build the database (the image's "init" mode imports the extract and then stops by itself)
           docker run -d --name overpass -p 12345:80 \
             -v "$PWD/region.osm.bz2:/region.osm.bz2:ro" -v ovdb:/db \
             -e OVERPASS_MODE=init -e OVERPASS_PLANET_URL=file:///region.osm.bz2 \
             -e OVERPASS_META=no -e OVERPASS_COMPRESSION=gz -e OVERPASS_RULES_LOAD=10 \
-            -e OVERPASS_SPACE=2147483648 -e OVERPASS_ALLOW_DUPLICATE_QUERIES=yes \
             wiktorn/overpass-api
-          echo "waiting for the map server to import the extract (usually 10-40 min) …"
-          RESTARTED=0
+          echo "importing the extract (usually 5-40 min) …"
           for n in $(seq 1 180); do
-            if curl -fs http://127.0.0.1:12345/api/status | grep -q "Connected as"; then
-              echo "own map server is ready after ~$((n/2)) min"
-              echo "LOCAL_OVP=http://127.0.0.1:12345/api/interpreter" >> "$GITHUB_ENV"
-              exit 0
-            fi
-            if [ "$(docker inspect -f '{{.State.Running}}' overpass 2>/dev/null)" != "true" ]; then
-              # the image's "init" mode builds the database and then STOPS by itself; starting the same container again serves it
-              if [ "$RESTARTED" = "0" ] && docker logs --tail 20 overpass 2>&1 | grep -q "initialization complete"; then
-                echo "database built – starting the server"
-                RESTARTED=1; docker start overpass; sleep 20; continue
-              fi
-              echo "container stopped"; break
-            fi
-            [ $((n % 10)) -eq 0 ] && docker logs --tail 3 overpass 2>&1
+            [ "$(docker inspect -f '{{.State.Running}}' overpass)" != "true" ] && break
+            [ $((n % 10)) -eq 0 ] && docker logs --tail 2 overpass 2>&1
             sleep 30
           done
+          docker logs overpass 2>&1 | grep -q "initialization complete" || { echo "import did not finish"; docker logs --tail 40 overpass 2>&1; exit 1; }
+          echo "database built"
+          # 2) serve it – first the same container again, then (if that fails) a fresh container with the bare minimum of settings
+          docker start overpass; sleep 15
+          if ready 12; then ok; fi
+          echo "::warning::attempt 1 (restart) failed – trying attempt 2"
+          echo "----- attempt 1: container log (without the import lines) -----"; docker logs overpass 2>&1 | grep -v "Reading XML\|in \"recurse\"" | tail -60
+          docker rm -f overpass
+          docker run -d --name overpass -p 12345:80 -v ovdb:/db -e OVERPASS_MODE=init -e OVERPASS_META=no -e OVERPASS_COMPRESSION=gz wiktorn/overpass-api
+          sleep 15
+          if ready 12; then ok; fi
+          # 3) nothing worked: collect what is needed to find the cause
           echo "::warning::own map server did not start – continuing with the public servers"
-          docker ps -a; docker logs --tail 60 overpass 2>&1 || true
+          echo "----- attempt 2: container log -----"; docker logs overpass 2>&1 | grep -v "Reading XML\|in \"recurse\"" | tail -60
+          echo "----- inside the container -----"
+          docker exec overpass sh -c 'ps aux | head -15; echo; ls -la /db /db/db 2>&1 | head -50; echo; for f in /db/*version* /db/db/*version* /db/replicate_id; do echo "== $f"; cat "$f" 2>&1 | head -3; done; echo; ls /app /app/bin 2>&1 | head -60' || true
+          docker exec overpass sh -c 'for f in /app/docker-entrypoint.sh /app/bin/dispatcher_start.sh /app/bin/start_*.sh; do [ -f "$f" ] && { echo "######## $f"; cat "$f"; }; done' 2>&1 | head -200 || true
           exit 1
       - name: Rest first (only in repeat runs without own server)
         run: |
