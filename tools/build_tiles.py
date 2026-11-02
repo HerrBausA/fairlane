@@ -224,13 +224,13 @@ def serve(directory):
     return httpd, httpd.server_address[1]
 
 async def local_status_ok(url, tries=1, wait=0):
-    """is our own Overpass server answering? (GET …/api/status)"""
-    import urllib.request
-    st = url.rsplit('/api/', 1)[0] + '/api/status'
+    """is our own Overpass server answering? (a tiny real query – the image's /api/status page is not reliable)"""
+    import urllib.request, urllib.parse
+    q = url + '?' + urllib.parse.urlencode({'data': '[out:json];node(1);out;'})
     for n in range(tries):
         try:
-            with urllib.request.urlopen(st, timeout=10) as r:
-                if r.status == 200:
+            with urllib.request.urlopen(q, timeout=20) as r:
+                if r.status == 200 and '"elements"' in r.read().decode('utf-8', 'replace'):
                     return True
         except Exception:
             pass
