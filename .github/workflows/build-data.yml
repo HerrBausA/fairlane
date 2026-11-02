@@ -70,7 +70,8 @@ jobs:
           osmium extract --bbox="$BB" --strategy=smart --overwrite -o region.osm.bz2 full.osm.pbf
           rm -f full.osm.pbf; ls -l region.osm.bz2
           docker volume create ovdb
-          ready() { for k in $(seq 1 $1); do curl -fs http://127.0.0.1:12345/api/status | grep -q "Connected as" && return 0; sleep 20; done; return 1; }
+          # (the image's /api/status page crashes inside the container – a normal map query is the reliable test)
+          ready() { for k in $(seq 1 $1); do curl -fsG --data-urlencode "data=[out:json];node(1);out;" http://127.0.0.1:12345/api/interpreter | grep -q '"elements"' && return 0; sleep 10; done; return 1; }
           ok() { echo "own map server is ready (after $(( ($(date +%s) - T0) / 60 )) min in total)"; echo "LOCAL_OVP=http://127.0.0.1:12345/api/interpreter" >> "$GITHUB_ENV"; exit 0; }
           # 1) build the database (the image's "init" mode imports the extract and then stops by itself)
           docker run -d --name overpass -p 12345:80 \
