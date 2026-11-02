@@ -77,13 +77,21 @@ jobs:
             -e OVERPASS_SPACE=2147483648 -e OVERPASS_RATE_LIMIT=0 -e OVERPASS_ALLOW_DUPLICATE_QUERIES=yes \
             wiktorn/overpass-api
           echo "waiting for the map server to import the extract (usually 10-40 min) …"
+          RESTARTED=0
           for n in $(seq 1 180); do
             if curl -fs http://127.0.0.1:12345/api/status | grep -q "Connected as"; then
               echo "own map server is ready after ~$((n/2)) min"
               echo "LOCAL_OVP=http://127.0.0.1:12345/api/interpreter" >> "$GITHUB_ENV"
               exit 0
             fi
-            if [ "$(docker inspect -f '{{.State.Running}}' overpass 2>/dev/null)" != "true" ]; then echo "container stopped"; break; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' overpass 2>/dev/null)" != "true" ]; then
+              # the image's "init" mode builds the database and then STOPS by itself; starting the same container again serves it
+              if [ "$RESTARTED" = "0" ] && docker logs --tail 20 overpass 2>&1 | grep -q "initialization complete"; then
+                echo "database built – starting the server"
+                RESTARTED=1; docker start overpass; sleep 20; continue
+              fi
+              echo "container stopped"; break
+            fi
             [ $((n % 10)) -eq 0 ] && docker logs --tail 3 overpass 2>&1
             sleep 30
           done
