@@ -19,6 +19,12 @@ on:
       runs:
         description: "How many runs in a row (1 = just once, 5 = up to 5 runs, stops early when nothing is missing)"
         default: "1"
+      local_server:
+        description: "Own fast map server inside the run (yes/no). yes = much faster, no = only the public map servers (old behaviour)"
+        default: "yes"
+      extract_url:
+        description: "Map extract for the own server (Geofabrik .osm.pbf that covers the region)"
+        default: "https://download.geofabrik.de/europe/germany/bayern-latest.osm.pbf"
       pause_min:
         description: "Pause at the start of each repeat run in minutes, max 60 (counts into its run time)"
         default: "15"
@@ -47,13 +53,50 @@ jobs:
         run: |
           pip install playwright
           playwright install --with-deps chromium
-      - name: Rest first (only in repeat runs)
+      - name: Remember the start time
+        run: echo "T0=$(date +%s)" >> "$GITHUB_ENV"
+      - name: Own map server (Overpass) from a Geofabrik extract
+        if: ${{ inputs.local_server != 'no' }}
+        continue-on-error: true
+        env:
+          EXTRACT_URL: ${{ inputs.extract_url }}
+        run: |
+          # If anything here fails the run simply continues with the public map servers (slow, like before).
+          sudo apt-get update -y && sudo apt-get install -y osmium-tool
+          BB=$(python tools/build_tiles.py --print-bbox --center "${{ inputs.center }}" --radius-km "${{ inputs.radius_km }}")
+          echo "region box (west,south,east,north): $BB"
+          curl -fL --retry 4 --retry-delay 10 -o full.osm.pbf "${EXTRACT_URL:-https://download.geofabrik.de/europe/germany/bayern-latest.osm.pbf}"
+          ls -l full.osm.pbf
+          osmium extract --bbox="$BB" --strategy=smart --overwrite -o region.osm.bz2 full.osm.pbf
+          rm -f full.osm.pbf; ls -l region.osm.bz2
+          docker volume create ovdb
+          docker run -d --name overpass -p 12345:80 \
+            -v "$PWD/region.osm.bz2:/region.osm.bz2:ro" -v ovdb:/db \
+            -e OVERPASS_MODE=init -e OVERPASS_PLANET_URL=file:///region.osm.bz2 \
+            -e OVERPASS_META=no -e OVERPASS_COMPRESSION=gz -e OVERPASS_RULES_LOAD=10 \
+            -e OVERPASS_SPACE=2147483648 -e OVERPASS_RATE_LIMIT=0 -e OVERPASS_ALLOW_DUPLICATE_QUERIES=yes \
+            wiktorn/overpass-api
+          echo "waiting for the map server to import the extract (usually 10-40 min) …"
+          for n in $(seq 1 180); do
+            if curl -fs http://127.0.0.1:12345/api/status | grep -q "Connected as"; then
+              echo "own map server is ready after ~$((n/2)) min"
+              echo "LOCAL_OVP=http://127.0.0.1:12345/api/interpreter" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' overpass 2>/dev/null)" != "true" ]; then echo "container stopped"; break; fi
+            [ $((n % 10)) -eq 0 ] && docker logs --tail 3 overpass 2>&1
+            sleep 30
+          done
+          echo "::warning::own map server did not start – continuing with the public servers"
+          docker logs --tail 60 overpass 2>&1 || true
+          exit 1
+      - name: Rest first (only in repeat runs without own server)
         run: |
           NO="${{ inputs.run_no }}"; PAUSE="${{ inputs.pause_min }}"; MAXM="${{ inputs.max_minutes }}"
           [ -z "$NO" ] && NO=1; [ -z "$PAUSE" ] && PAUSE=15; [ -z "$MAXM" ] && MAXM=300
           [ "$PAUSE" -gt 60 ] && PAUSE=60
           [ "$MAXM" -gt 320 ] && MAXM=320
-          if [ "$NO" -gt 1 ]; then
+          if [ "$NO" -gt 1 ] && [ -z "$LOCAL_OVP" ]; then
             echo "Run $NO: resting $PAUSE minutes so the map servers can recover …"
             sleep $((PAUSE * 60))
             MAXM=$((MAXM - PAUSE))
@@ -61,7 +104,11 @@ jobs:
           fi
           echo "BUDGET=$MAXM" >> "$GITHUB_ENV"
       - name: Classify the region
-        run: python tools/build_tiles.py --html index.html --out data --center "${{ inputs.center }}" --radius-km "${{ inputs.radius_km }}" --max-minutes "$BUDGET"
+        run: |
+          ELAPSED=$(( ($(date +%s) - T0) / 60 )); BUDGET=$((BUDGET - ELAPSED)); [ "$BUDGET" -lt 20 ] && BUDGET=20
+          echo "time budget for the classification: $BUDGET min (own server: ${LOCAL_OVP:-no})"
+          ARGS=""; [ -n "$LOCAL_OVP" ] && ARGS="--overpass-local $LOCAL_OVP"
+          python tools/build_tiles.py --html index.html --out data --center "${{ inputs.center }}" --radius-km "${{ inputs.radius_km }}" --max-minutes "$BUDGET" $ARGS
       - name: Save the results into the repository
         if: always()
         run: |
