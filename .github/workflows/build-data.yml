@@ -74,7 +74,7 @@ jobs:
             -v "$PWD/region.osm.bz2:/region.osm.bz2:ro" -v ovdb:/db \
             -e OVERPASS_MODE=init -e OVERPASS_PLANET_URL=file:///region.osm.bz2 \
             -e OVERPASS_META=no -e OVERPASS_COMPRESSION=gz -e OVERPASS_RULES_LOAD=10 \
-            -e OVERPASS_SPACE=2147483648 -e OVERPASS_RATE_LIMIT=0 -e OVERPASS_ALLOW_DUPLICATE_QUERIES=yes \
+            -e OVERPASS_SPACE=2147483648 -e OVERPASS_ALLOW_DUPLICATE_QUERIES=yes \
             wiktorn/overpass-api
           echo "waiting for the map server to import the extract (usually 10-40 min) …"
           RESTARTED=0
@@ -96,7 +96,7 @@ jobs:
             sleep 30
           done
           echo "::warning::own map server did not start – continuing with the public servers"
-          docker logs --tail 60 overpass 2>&1 || true
+          docker ps -a; docker logs --tail 60 overpass 2>&1 || true
           exit 1
       - name: Rest first (only in repeat runs without own server)
         run: |
