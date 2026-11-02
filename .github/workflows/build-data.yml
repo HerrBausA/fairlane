@@ -71,7 +71,7 @@ jobs:
           rm -f full.osm.pbf; ls -l region.osm.bz2
           docker volume create ovdb
           # (the image's /api/status page crashes inside the container – a normal map query is the reliable test)
-          ready() { for k in $(seq 1 $1); do out=$(curl -fsG --data-urlencode "data=[out:json];node(1);out;" http://127.0.0.1:12345/api/interpreter 2>/dev/null || true); case "$out" in *'"elements"'*) return 0;; esac; sleep 10; done; return 1; }
+          ready() { for k in $(seq 1 $1); do out=$(curl -sG --data-urlencode "data=[out:json];node(1);out;" http://127.0.0.1:12345/api/interpreter 2>&1 || true); case "$out" in *'"elements"'*) return 0;; esac; [ "$k" = "1" ] && { echo "first test answer was:"; echo "$out" | head -c 1500; echo; }; sleep 10; done; return 1; }
           ok() { echo "own map server is ready (after $(( ($(date +%s) - T0) / 60 )) min in total)"; echo "LOCAL_OVP=http://127.0.0.1:12345/api/interpreter" >> "$GITHUB_ENV"; exit 0; }
           # 1) build the database (the image's "init" mode imports the extract and then stops by itself)
           docker run -d --name overpass -p 12345:80 \
@@ -99,6 +99,12 @@ jobs:
           # 3) nothing worked: collect what is needed to find the cause
           echo "::warning::own map server did not start – continuing with the public servers"
           echo "----- attempt 2: container log -----"; docker logs overpass 2>&1 | grep -v "Reading XML\|in \"recurse\"" | tail -60
+          echo "----- test query straight into the engine (bypasses the web server) -----"
+          echo '[out:json];node(1);out;' | docker exec -i overpass /app/bin/osm3s_query --db-dir=/db/db 2>&1 | head -c 1500 || true
+          echo; echo "----- test query through the web server, inside the container, with headers -----"
+          docker exec overpass sh -c 'curl -si "http://localhost/api/interpreter?data=%5Bout%3Ajson%5D%3Bnode(1)%3Bout%3B" | head -c 1500' || true
+          echo; echo "----- web server / supervisor logs -----"
+          docker exec overpass sh -c 'tail -n 30 /var/log/nginx/error.log 2>&1; ls /var/log/supervisor 2>&1; tail -n 20 /db/db/database.log 2>&1; df -h /dev/shm /db 2>&1' || true
           echo "----- inside the container -----"
           docker exec overpass sh -c 'ps aux | head -15; echo; ls -la /db /db/db 2>&1 | head -50; echo; for f in /db/*version* /db/db/*version* /db/replicate_id; do echo "== $f"; cat "$f" 2>&1 | head -3; done; echo; ls /app /app/bin 2>&1 | head -60' || true
           docker exec overpass sh -c 'for f in /app/docker-entrypoint.sh /app/bin/dispatcher_start.sh /app/bin/start_*.sh; do [ -f "$f" ] && { echo "######## $f"; cat "$f"; }; done' 2>&1 | head -200 || true
