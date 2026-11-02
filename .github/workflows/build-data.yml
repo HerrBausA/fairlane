@@ -88,6 +88,8 @@ jobs:
           docker logs overpass 2>&1 | grep -q "initialization complete" || { echo "import did not finish"; docker logs --tail 40 overpass 2>&1; exit 1; }
           echo "database built"
           # 2) serve it – first the same container again, then (if that fails) a fresh container with the bare minimum of settings
+          # /db is the "overpass" user's home folder (mode 700); the web server runs as another user and must be allowed to reach the database socket inside it
+          docker run --rm -v ovdb:/db --entrypoint chmod wiktorn/overpass-api 755 /db
           docker start overpass; sleep 15
           if ready 12; then ok; fi
           echo "::warning::attempt 1 (restart) failed – trying attempt 2"
