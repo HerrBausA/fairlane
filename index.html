@@ -1096,7 +1096,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get exTilesIn(){return exTilesIn},get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -2754,13 +2754,14 @@ function exForget(i,j){const t=EX.tiles.get(exTileKey(i,j));if(!t)return;try{if(
 const exElCat=(e,cats)=>e.cs?cats.find(q=>e.cs.includes(q)):cats.find(q=>!POI_BAN(e.t)&&POI_CATS[q].test(e.t));   /* ready-made POIs carry their categories (cs) */
 function exTileGet(i,j){const k=exTileKey(i,j);let t=EX.tiles.get(k);if(!t){t={k,i,j,core:exCore(i,j),els:new Map(),cats:new Set(),chains:null,res:{},busy:new Set(),fail:{},on:{},g:null};EX.tiles.set(k,t);}return t;}
 function exTilesIn(b){
-  const i0=Math.floor(b.getSouth()/TLAT),i1=Math.floor(b.getNorth()/TLAT),j0=Math.floor(b.getWest()/TLON),j1=Math.floor(b.getEast()/TLON),out=[];
-  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++)out.push(exTileGet(i,j));
-  const c=EX.map.getCenter();out.sort((a,b)=>Math.hypot(a.core.s+TLAT/2-c.lat,a.core.w+TLON/2-c.lng)-Math.hypot(b.core.s+TLAT/2-c.lat,b.core.w+TLON/2-c.lng));
+  let i0=Math.floor(b.getSouth()/TLAT),i1=Math.floor(b.getNorth()/TLAT),j0=Math.floor(b.getWest()/TLON),j1=Math.floor(b.getEast()/TLON);const out=[];
+  const c=EX.map.getCenter();
+  if((i1-i0+1)*(j1-j0+1)>1800){const ci=Math.floor(c.lat/TLAT),cj=Math.floor(c.lng/TLON);i0=Math.max(i0,ci-20);i1=Math.min(i1,ci+20);j0=Math.max(j0,cj-22);j1=Math.min(j1,cj+22);}   /* zoomed far out: only a window around the centre */
+  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++)out.push(exTileGet(i,j));out.sort((a,b)=>Math.hypot(a.core.s+TLAT/2-c.lat,a.core.w+TLON/2-c.lng)-Math.hypot(b.core.s+TLAT/2-c.lat,b.core.w+TLON/2-c.lng));
   return out;
 }
 const TABLET=(()=>{try{return matchMedia('(pointer:coarse)').matches&&Math.max(screen.width,screen.height)>=700;}catch(e){return false;}})();   /* iPad: fewer areas drawn at once = smooth panning on 2 GB devices */
-const EXMAXT=TABLET?9:12,EXRING=8,EXDRAW=TABLET?42:70;
+const EXMAXT=TABLET?9:12,EXRING=8,EXDRAW=TABLET?42:(()=>{try{return matchMedia('(pointer:coarse)').matches?70:600;}catch(e){return 70;}})();   /* desktop: draw every classified area in view (up to 600), not just the 70 nearest the centre */
 const exCfg=()=>({cats:$$('#exCats input:checked').map(i=>i.value),us:$('#exShowUs').checked,sc:$('#exShowSc').checked,fe:$('#exShowFe').checked,av:$('#exShowAv').checked,tiers:($('#exTg').checked?'g':'')+($('#exTs').checked?'s':'')+($('#exTb').checked?'b':''),poi:$('#exShowPoi').checked});
 function exCfgOf(){const c=exCfg();c.roads=c.us||c.sc||c.fe||c.av;c.pois=c.poi&&c.cats.length>0;c.fcats=[...new Set([...POI_DEF,...c.cats])];return c;}   /* fcats: fetched in the background even while hidden */
 const exFailed=(t,k)=>t.fail[k]&&Date.now()-t.fail[k]<20000;
@@ -2791,7 +2792,7 @@ async function exCacheRun(){
     if(await exPreLoad(t)){EX.ver++;exSyncSoon();continue;}
     const rh=exRoadsFrom(await exDbGet('r2|'+t.k,EXTTL.r));if(!rh||t.chains)continue;
     t.busy.add('roads');try{exApplyRoads(t,rh.ways,rh.rails);await exPreX(t);await exResCache(t);}finally{t.busy.delete('roads');}
-    EX.ver++;exSyncSoon();await sleep(30);}}
+    EX.ver++;exSyncSoon();await sleep(EX.cacheQ.length>20?4:30);}}
   finally{EX.cacheBusy=false;}
 }
 const EX_BASE=k=>k==='roads';
