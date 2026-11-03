@@ -51,7 +51,7 @@ jobs:
           python-version: "3.12"
       - name: Install headless Chrome
         run: |
-          pip install playwright
+          pip install playwright pillow
           playwright install --with-deps chromium
       - name: Remember the start time
         run: echo "T0=$(date +%s)" >> "$GITHUB_ENV"
