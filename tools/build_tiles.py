@@ -76,11 +76,13 @@ def normalise_manifest(man):
     man.setdefault('cars', {})
     return man
 
-async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print, cars=None, pois=True, rest_base=120):
+async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500, log=print, cars=None, pois=True, rest_base=120, coverage=None):
     """page: a page that has the planner loaded – or a LIST of such pages: then that many areas are processed at the same time
     (only useful with a map server of our own, see --overpass-local). Returns (done, failed, skipped) – AREAS."""
     pages = page if isinstance(page, (list, tuple)) else [page]
     page = pages[0]
+    # coverage(i, j) -> True when the map data really covers that area (own server only). Areas outside the extract would come out
+    # EMPTY ("0 stretches, 0 places") and must not be stored as finished.
     cars = cars or CAR_IDS
     mpath = os.path.join(out, 'manifest.json')
     man = normalise_manifest(load_manifest(mpath))
@@ -113,6 +115,46 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
             m.append('poi')
         return m
 
+    cov_cache = {}
+    async def covered(i, j):
+        if not coverage:
+            return True
+        k = (i, j)
+        if k not in cov_cache:
+            try:
+                cov_cache[k] = bool(await coverage(i, j))
+            except Exception:
+                cov_cache[k] = True      # cannot tell → treat as covered
+        return cov_cache[k]
+    nodata = []
+    if coverage:
+        # results that an earlier run stored for areas WITHOUT map data (0 stretches / 0 places) are removed again
+        purged = 0
+        for cid in cars:
+            ce = man['cars'][keys[cid]]
+            for k, v in list(ce['tiles'].items()):
+                if v.get('n', 1) == 0 and v.get('km', 1) == 0:
+                    i, j = (int(x) for x in k.split(','))
+                    if not await covered(i, j):
+                        del ce['tiles'][k]
+                        try:
+                            os.remove(os.path.join(out, car_dir(cid), f"{i}_{j}.json"))
+                        except OSError:
+                            pass
+                        purged += 1
+        if pois:
+            for k, n in list(man['poi']['tiles'].items()):
+                if n == 0:
+                    i, j = (int(x) for x in k.split(','))
+                    if not await covered(i, j):
+                        del man['poi']['tiles'][k]
+                        try:
+                            os.remove(os.path.join(out, 'p', f"{i}_{j}.json"))
+                        except OSError:
+                            pass
+                        purged += 1
+        if purged:
+            log(f"{purged} empty results of areas without map data removed again")
     t0 = time.time()
     todo = [(i, j) for (i, j) in tiles if missing(i, j)]
     skipped = len(tiles) - len(todo)
@@ -142,6 +184,11 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
                     log(f"time budget of {max_minutes} min used up – stopping; run again to continue")
                 out_of_time = True
                 retry.append((i, j))
+                return
+            if not await covered(i, j):
+                if k not in nodata:
+                    nodata.append(k)
+                    log(f"[{k}] no map data here (outside the map extract) – skipped")
                 return
             progress = False
             for part in missing(i, j):
@@ -202,6 +249,8 @@ async def build(page, tiles, out, max_minutes=300, delay=2.0, tile_timeout=1500,
 
         await asyncio.gather(*[worker(pg) for pg in pages])
         todo = retry
+    if nodata:
+        log(f"{len(nodata)} areas have no map data in the extract and were skipped (add the neighbouring region to extract_url to cover them)")
     failed = [f"{i},{j}" for (i, j) in todo]
     # new results complete for every requested area of a car → its older versions are no longer needed
     for cid in cars:
@@ -237,6 +286,127 @@ async def local_status_ok(url, tries=1, wait=0):
         if n + 1 < tries:
             await asyncio.sleep(wait)
     return False
+
+async def count_ways(local, i, j):
+    """number of roads in one area according to our own server (0-few = the extract does not cover the area)"""
+    import urllib.request, urllib.parse
+    s, w, n, e = i * TLAT, j * TLON, (i + 1) * TLAT, (j + 1) * TLON
+    q = f'[out:json][timeout:90];way["highway"]({s:.4f},{w:.4f},{n:.4f},{e:.4f});out count;'
+    def go():
+        req = urllib.request.Request(local, data=urllib.parse.urlencode({'data': q}).encode())
+        with urllib.request.urlopen(req, timeout=120) as r:
+            j_ = json.loads(r.read().decode('utf-8', 'replace'))
+        for el in j_.get('elements', []):
+            if el.get('type') == 'count':
+                return int(el['tags'].get('ways', el['tags'].get('total', 0)))
+        raise RuntimeError('no count in answer')
+    return await asyncio.to_thread(go)
+
+MIN_WAYS = 30      # an 11 x 11 km area with fewer roads than this is outside the extract
+
+def make_coverage(local):
+    async def cov(i, j):
+        return (await count_ways(local, i, j)) >= MIN_WAYS
+    return cov
+
+def make_elev_handler(gap=1.5, log=print, retries=3, wait=20):
+    """The terrain-height service (Open-Meteo) allows only a few requests per minute. All requests of all pages go through ONE queue
+    with a minimum gap, and a 429 answer is waited out and repeated instead of being handed to the page as a failure."""
+    state = {'last': 0.0}
+    lock = asyncio.Lock()
+    async def handler(route):
+        async with lock:
+            pause = state['last'] + gap - time.time()
+            if pause > 0:
+                await asyncio.sleep(pause)
+            resp = None
+            for attempt in range(retries + 1):
+                try:
+                    resp = await route.fetch(timeout=60000)
+                except Exception:
+                    state['last'] = time.time()
+                    await route.abort()
+                    return
+                if resp.status == 429 and attempt < retries:
+                    log(f"  terrain service said 'too many requests' – waiting {wait * (attempt + 1)} s")
+                    await asyncio.sleep(wait * (attempt + 1))
+                    continue
+                break
+            state['last'] = time.time()
+        await route.fulfill(response=resp)
+    return handler
+
+async def install_elev_route(ctx, shared_handler):
+    await ctx.route(lambda u: 'api.open-meteo.com' in u, shared_handler)
+
+# Terrain heights from the free AWS "terrarium" height tiles (worldwide, no key, no limit) instead of Open-Meteo (429 when fast).
+# Answers the planner's request in the same format; if anything fails the request falls through to the Open-Meteo queue above.
+TERRAIN_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+
+def _fetch_bytes(url, tries=4):
+    import urllib.request
+    last = None
+    for n in range(tries):
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'fairlane-rallye-planner-build'})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.read()
+        except Exception as e:
+            last = e
+            time.sleep(1.5 * (n + 1))
+    raise last
+
+class Terrain:
+    def __init__(self, fetch=None, z=12):
+        self.fetch = fetch or (lambda z, x, y: _fetch_bytes(TERRAIN_URL.format(z=z, x=x, y=y)))
+        self.z = z
+        self.cache = {}
+        self.lock = threading.Lock()
+
+    def _tile(self, x, y):
+        with self.lock:
+            if (x, y) in self.cache:
+                return self.cache[(x, y)]
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(self.fetch(self.z, x, y))).convert('RGB')
+        img.load()
+        with self.lock:
+            if len(self.cache) > 300:
+                self.cache.pop(next(iter(self.cache)))
+            self.cache[(x, y)] = img
+        return img
+
+    def height(self, lat, lon):
+        n = 2 ** self.z
+        fx = (lon + 180.0) / 360.0 * n
+        lr = math.radians(lat)
+        fy = (1 - math.log(math.tan(lr) + 1 / math.cos(lr)) / math.pi) / 2 * n
+        x, y = int(fx), int(fy)
+        px, py = min(255, int((fx - x) * 256)), min(255, int((fy - y) * 256))
+        r, g, b = self._tile(x, y).getpixel((px, py))
+        return round(r * 256 + g + b / 256 - 32768, 1)
+
+async def install_terrain_route(ctx, terrain, log=print):
+    import urllib.parse
+    stats = {'n': 0, 'err': 0}
+    async def handler(route):
+        try:
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(route.request.url).query)
+            la = [float(v) for v in q['latitude'][0].split(',')]
+            lo = [float(v) for v in q['longitude'][0].split(',')]
+            el = await asyncio.to_thread(lambda: [terrain.height(a, b) for a, b in zip(la, lo)])
+            stats['n'] += 1
+            await route.fulfill(status=200, content_type='application/json', headers={'access-control-allow-origin': '*'}, body=json.dumps({'elevation': el}))
+        except Exception as e:
+            stats['err'] += 1
+            log(f"  height tiles failed ({str(e)[:80]}) – asking Open-Meteo instead")
+            try:
+                await route.fallback()
+            except Exception:
+                pass
+    await ctx.route(lambda u: u.startswith('https://api.open-meteo.com/v1/elevation'), handler)
+    return stats
 
 async def install_local_route(ctx, local, log=print):
     """Every Overpass request of the planner is answered by OUR server. The planner asks several public servers one after another
@@ -303,8 +473,18 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         pages = []
+        terrain = None
+        try:
+            import PIL  # noqa: F401
+            terrain = Terrain()
+        except ImportError:
+            print('Pillow is not installed – terrain heights come from Open-Meteo (slow, may be refused)')
+        elev = make_elev_handler(gap=1.5)       # ONE queue for the terrain service across all pages
         for w in range(workers):
             ctx = await b.new_context(viewport={'width': 1200, 'height': 800})
+            await install_elev_route(ctx, elev)
+            if terrain:
+                await install_terrain_route(ctx, terrain)
             if local:
                 await install_local_route(ctx, local)
             page = await ctx.new_page()
@@ -326,7 +506,7 @@ async def main():
                 await b.close()
                 sys.exit(1)
             pages.append(page)
-        done, failed, skipped = await build(pages, tiles, a.out, a.max_minutes, delay)
+        done, failed, skipped = await build(pages, tiles, a.out, a.max_minutes, delay, coverage=make_coverage(local) if local else None)
         await b.close()
     httpd.shutdown()
     print(f"finished: {len(done)} built, {skipped} already there, {len(failed)} failed")
