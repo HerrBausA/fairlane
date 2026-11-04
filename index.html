@@ -803,7 +803,7 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
         <div id="drvTop"><div id="drvRt" hidden></div><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small><small id="drvAttr">© OpenStreetMap contributors</small></div>
         <div id="drvZ"><button type="button" id="drvZi" aria-label="Zoom in">＋</button><button type="button" id="drvZo" aria-label="Zoom out">－</button></div>
         <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div></div>
-        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvSnd">🔔 Alert on</button><button type="button" id="drvBeep">🚂 Horn on</button><button type="button" id="drvRoute">🧭 Planned route</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvHu">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
+        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvBeep">🚂 Horn on</button><button type="button" id="drvRoute">🧭 Planned route</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvHu">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
     </div>
@@ -3586,7 +3586,6 @@ function drvRouteEval(){
   }
   if(box.innerHTML!==html)box.innerHTML=html;
 }
-$('#drvSnd').onclick=()=>{DRV.snd=!DRV.snd;try{localStorage.setItem('flrp_drvsnd',DRV.snd?'1':'0');}catch(e){}drvSndBtn();if(DRV.snd){drvAudio();drvChime();}};
 $('#drvRoute').onclick=()=>{if(!DR.on&&!S.cur){toast('Plan a route first (Plan tab), then it can be followed here.',4500);return;}drvRouteShow(!DR.on);};
 $('#btnDriveRt').onclick=()=>{
   if(!S.cur){toast('Plan or open a route first.');return;}
@@ -3614,30 +3613,6 @@ function drvAhead(L_,exclude,head){
   return best;
 }
 
-/* ---- acoustic alert: one chime (and a short buzz where the device can) when the GPS locks onto a stretch that still wants a rating – once per stretch ---- */
-const drvSndPref=()=>{try{return localStorage.getItem('flrp_drvsnd')!=='0';}catch(e){return true;}};
-function drvAudio(){
-  try{if(!DRV.au){const A=window.AudioContext||window.webkitAudioContext;if(A)DRV.au=new A();}
-    if(DRV.au&&DRV.au.state==='suspended')DRV.au.resume();}catch(e){}
-  return DRV.au||null;
-}
-function drvChime(){
-  try{
-    const c=drvAudio();
-    if(c){const t=c.currentTime;[[880,0],[1175,.17],[1568,.34]].forEach(([f,d])=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;
-      g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.4,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.32);
-      o.connect(g);g.connect(c.destination);o.start(t+d);o.stop(t+d+.34);});}
-    if(navigator.vibrate)navigator.vibrate([110,70,110]);
-  }catch(e){}
-}
-function drvSndBtn(){const b=$('#drvSnd');if(b){b.textContent=DRV.snd?'🔔 Alert on':'🔕 Alert off';b.classList.toggle('on',!!DRV.snd);}}
-function drvAlertCheck(){
-  if(!DRV.snd||!DRV.cur)return;
-  const k=rKey(DRV.cur);
-  if(DRV.alerted.has(k))return;
-  DRV.alerted.add(k);
-  if(!(rLoad()[k]))drvChime();   /* a stretch you have already rated needs no wake-up call */
-}
 /* ---- acoustic alert: ONE train-horn blast when the GPS locks onto a US-feeling stretch that still needs a rating (wakes the pilot, never repeats for the same stretch) ---- */
 const drvBeepPref=()=>{try{return localStorage.getItem('flrp_drvbeep')!=='0';}catch(e){return true;}};
 function drvAudioInit(){try{if(!DRV.audio){const AC=window.AudioContext||window.webkitAudioContext;if(AC)DRV.audio=new AC();}if(DRV.audio&&DRV.audio.state==='suspended')DRV.audio.resume();}catch(e){}}
@@ -3704,7 +3679,6 @@ function drvEval(){
   $$('#drvBtns [data-drate]').forEach(b=>{const r=b.dataset.drate;b.classList.toggle('on',!!rt&&(r==='no'?rt==='no':(rt===r||rt==='both')));b.disabled=!tgt;b.style.opacity=tgt?1:.5;});
   {const ok=!!(tgt&&tgt.tier),mt=ok?(exMine()[rKey(tgt)]||''):'';$$('#drvBtns [data-dmine]').forEach(b=>{b.classList.toggle('on',!!mt&&b.dataset.dmine===mt);b.disabled=!ok;b.style.opacity=ok?1:.5;});}
   $('#drvNow').textContent=now;$('#drvAhead').textContent=ahead+(tgt&&!DRV.cur?' · (rating applies to the stretch you just left)':'');
-  drvAlertCheck();
 }
 function drvOnPos(pos){
   const c=pos.coords,ll=[c.latitude,c.longitude],acc=c.accuracy!=null?c.accuracy:9999,tn=Date.now();
@@ -3784,7 +3758,7 @@ async function drvStart(){
   if(DRV.on)return;
   if(!navigator.geolocation||gpsInsecure()){toast(gpsHelp('insecure'),9000);return;}
   DRV.beepOn=drvBeepPref();DRV.alerted=new Set();drvAudioInit();drvBeepBtn();
-  exInit();exLocStop();DRV.on=true;DRV.snd=drvSndPref();DRV.alerted=new Set();drvAudio();drvSndBtn();DRV.hu=drvHuPref();HU.lay=false;HU.init=false;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
+  exInit();exLocStop();DRV.on=true;DRV.hu=drvHuPref();HU.lay=false;HU.init=false;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
   const us=$('#exShowUs');if(us&&!us.checked){us.checked=true;us.dispatchEvent(new Event('change'));}
   $('#exWrap').classList.add('driving');document.body.classList.add('drv');$('#exDrive').hidden=false;$('#drvNow').textContent='Waiting for GPS…';$('#drvAhead').textContent='';$('#drvGps').textContent='';
   drvFollowSet(true);fsSync();
