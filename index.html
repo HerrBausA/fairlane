@@ -561,9 +561,8 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 #savedBox{margin-top:8px}
 
 /* ---- American road map: the look of a 1950s-60s gas-station road map (cream paper, vivid inks, red-white-blue rules, lettered grid, mileage scale) ---- */
-.mstyle-usa .leaflet-tile-pane{filter:saturate(1.3) contrast(1.07) sepia(.14) hue-rotate(-4deg)}
-.mstyle-usa::after{z-index:450;mix-blend-mode:multiply;background:linear-gradient(rgba(252,244,214,.50),rgba(252,244,214,.50)),linear-gradient(90deg,transparent calc(50% - 1px),rgba(120,60,20,.16) 50%,transparent calc(50% + 2px)),linear-gradient(0deg,transparent calc(50% - 1px),rgba(120,60,20,.14) 50%,transparent calc(50% + 2px)),radial-gradient(ellipse at 50% 50%,transparent 62%,rgba(150,100,40,.22) 100%),var(--grain)}
-.mstyle-usa::before{display:none}
+.mstyle-usa .leaflet-tile-pane{filter:saturate(1.45) contrast(1.06) sepia(.10) hue-rotate(-5deg) brightness(1.03)}
+.mstyle-usa::after,.mstyle-usa::before{display:none}   /* no paper tint over the map: gold / silver / bronze stretches, routes and markers keep their exact colours */
 .mstyle-usa .map-frame{box-shadow:inset 0 0 0 5px #fbf3d8,inset 0 0 0 7px #b22234,inset 0 0 0 10px #fbf3d8,inset 0 0 0 12px #1f3a6e,inset 0 0 0 30px rgba(251,243,216,.0),inset 0 0 50px rgba(110,70,20,.28)}
 .mstyle-usa .map-frame::before,.mstyle-usa .map-frame::after{position:absolute;font:700 10px/1 'Special Elite','Courier New',monospace;color:#1f3a6e;letter-spacing:0;text-shadow:0 0 3px #fbf3d8,0 0 3px #fbf3d8;pointer-events:none}
 .mstyle-usa .map-frame::before{content:"A B C D E F G H";left:80px;right:80px;top:15px;text-align:justify;text-align-last:justify;white-space:normal}
@@ -1168,7 +1167,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get osrm(){return osrm},get rtWps(){return rtWps},get rtOpen(){return rtOpen},get drvRouteShow(){return drvRouteShow},get drvRouteEval(){return drvRouteEval},get DR(){return DR},get S(){return S},get TR(){return TR},get trCands(){return trCands},get trAreaSet(){return trAreaSet},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get TL(){return {TLAT,TLON}},get preMatch(){return preMatch},get preApply(){return preApply},get preBonus(){return preBonus},get exTilesIn(){return exTilesIn},get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get exStretchAt(){return exStretchAt},get exTileGet(){return exTileGet},get osrm(){return osrm},get rtWps(){return rtWps},get rtOpen(){return rtOpen},get drvRouteShow(){return drvRouteShow},get drvRouteEval(){return drvRouteEval},get DR(){return DR},get S(){return S},get TR(){return TR},get trCands(){return trCands},get trAreaSet(){return trAreaSet},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get TL(){return {TLAT,TLON}},get preMatch(){return preMatch},get preApply(){return preApply},get preBonus(){return preBonus},get exTilesIn(){return exTilesIn},get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -3211,8 +3210,14 @@ async function exPickRoad(ll){
   catch(err){console.warn(err);if(tok===exPickTok){exPickTok++;toast(err&&err.message==='timeout'?'The map servers are very slow right now. The road keeps loading in the background – tap it again in about 20 seconds.':'Could not read that road ('+(err&&err.message?err.message:'error')+'). Tap right on the line again.',6000);}}
   finally{clearInterval(tick);clearTimeout(to);if(tok===exPickTok)exPicking=0;else exPicking=0;}
 }
+/* ready-made areas carry no raw road geometry – but the stretches they store (US-feeling, scenic, avenues, suitability) are road geometry too: usable offline when a road is added */
+function exLocalChains(t){
+  if(t._lc)return t._lc;const o=t.res&&t.res[exCarKey()];if(!o)return t._lc=[];
+  const lines=[].concat(o.us||[],o.sc||[],o.av||[],(o.fe&&o.fe.ok)||[],(o.fe&&o.fe.warn)||[],(o.fe&&o.fe.bad)||[]).filter(l=>l&&l.length>1);
+  return t._lc=lines.map(l=>{const f=l.f||{};return {hw:f.hw||'secondary',ref:f.ref||'',name:'',width:null,maxw:null,wid:f.wid||null,pts:l,spd:l.map(()=>null),local:true};});
+}
 async function exStretchAt(p,range){
-  const all=[];EX.tiles.forEach(t=>{if(t.chains)t.chains.forEach(c=>all.push({c,t}));});
+  const all=[];EX.tiles.forEach(t=>{if(t.chains&&t.chains.length)t.chains.forEach(c=>all.push({c,t}));else if(t.pre)exLocalChains(t).forEach(c=>all.push({c,t}));});
   let best=exNearest(p,all),extraWays=null,netErr=false;
   const tl0=EX.tiles.get(exTileKey(Math.floor(p[0]/TLAT),Math.floor(p[1]/TLON)))||null;
   const cov=(EX.smallSets||[]).find(z=>hav(p,z.c)<z.r-70);   /* small streets around here are already known (earlier lookup or drive-mode preload) */
@@ -3239,13 +3244,13 @@ async function exStretchAt(p,range){
       }catch(e){}
     }
   }
-  if(netErr&&(!best||best.d>12))return {netErr:true};   /* could not check for small roads: better say so than silently pick a different road */
+  if(netErr&&(!best||best.d>(best.c.local?30:12)))return {netErr:true};   /* could not check for small roads: better say so than silently pick a different road */
   if(!best)return {netErr};
   const {c,i,t}=best,q=c.pts;let a=i,b=i+1,da=0,db=0;
   while(a>0&&da<range){da+=hav(q[a-1],q[a]);a--;}
   while(b<q.length-1&&db<range){db+=hav(q[b],q[b+1]);b++;}
   const pts=q.slice(a,b+1);
-  const f=exStretchInfo(c,pts,t||{});pts.f=f;pts.tier='';
+  const f=exStretchInfo(c,pts,t||{});pts.f=f;pts.tier='';if(c.local)f.local=true;
   let wb=null;(extraWays||(t&&t.ways)||[]).forEach(w=>{const g=w.geometry;for(let k=0;k<g.length-1;k++){const r=exDSeg(p,[g[k].lat,g[k].lon],[g[k+1].lat,g[k+1].lon]);if(!wb||r.d<wb.d)wb={d:r.d,id:w.id};}});
   f.wid=wb?wb.id:c.wid;
   return {pts,f,netErr:false};
