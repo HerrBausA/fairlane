@@ -803,7 +803,7 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
         <div id="drvTop"><div id="drvRt" hidden></div><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small><small id="drvAttr">© OpenStreetMap contributors</small></div>
         <div id="drvZ"><button type="button" id="drvZi" aria-label="Zoom in">＋</button><button type="button" id="drvZo" aria-label="Zoom out">－</button></div>
         <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div></div>
-        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvRoute">🧭 Planned route</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvHu">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
+        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvSnd">🔔 Alert on</button><button type="button" id="drvBeep">🚂 Horn on</button><button type="button" id="drvRoute">🧭 Planned route</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvHu">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
     </div>
@@ -1167,7 +1167,7 @@ const POI_CATS={
  castle:{grp:'sights',label:'Castles & ruins',em:'🏰',q:['["historic"~"^(castle|ruins|fort)$"]'],test:t=>/^(castle|ruins|fort)$/.test(t.historic||'')},
  pin:{label:'My stop',em:'📌',q:[],test:()=>false}
 };
-window.__flrp={get exStretchAt(){return exStretchAt},get exTileGet(){return exTileGet},get osrm(){return osrm},get rtWps(){return rtWps},get rtOpen(){return rtOpen},get drvRouteShow(){return drvRouteShow},get drvRouteEval(){return drvRouteEval},get DR(){return DR},get S(){return S},get TR(){return TR},get trCands(){return trCands},get trAreaSet(){return trAreaSet},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get TL(){return {TLAT,TLON}},get preMatch(){return preMatch},get preApply(){return preApply},get preBonus(){return preBonus},get exTilesIn(){return exTilesIn},get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
+window.__flrp={get drvEval(){return drvEval},get drvAlert(){return drvAlert},get exStretchAt(){return exStretchAt},get exTileGet(){return exTileGet},get osrm(){return osrm},get rtWps(){return rtWps},get rtOpen(){return rtOpen},get drvRouteShow(){return drvRouteShow},get drvRouteEval(){return drvRouteEval},get DR(){return DR},get S(){return S},get TR(){return TR},get trCands(){return trCands},get trAreaSet(){return trAreaSet},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get TL(){return {TLAT,TLON}},get preMatch(){return preMatch},get preApply(){return preApply},get preBonus(){return preBonus},get exTilesIn(){return exTilesIn},get drvHuLayout(){return drvHuLayout},get drvHuHead(){return drvHuHead},get DRV(){return DRV},get HU(){return HU},get fsSync(){return fsSync},get fsMenu(){return fsMenu},get EX(){return EX},get exTileSet(){return exTileSet},get exDropG(){return exDropG},get exBuild(){return exBuild},get exTier(){return exTier},get exSetMine(){return exSetMine},get exSetRate(){return exSetRate},get rLoad(){return rLoad},get exPoiVer(){return exPoiVer},get exPreLoad(){return exPreLoad},get exTileGet(){return exTileGet},get exApplyExtras(){return exApplyExtras},get exEvid(){return exEvid},get usModelQ(){return usModelQ},get usQ(){return usQ},get hwFof(){return hwFof},get US_P(){return US_P},get exRescore(){return exRescore},get exChains(){return exChains},get exSections(){return exSections},get exForget(){return exForget},get exPrebuild(){return exPrebuild},get exPrebuildPois(){return exPrebuildPois},get exSetCar(){return exSetCar},get exUnpackJ(){return exUnpackJ},get exCarKey(){return exCarKey},get exPackJ(){return exPackJ},get SafeTiles(){return SafeTiles},get TR(){return TR},get tileKey(){return tileKey},get railUS(){return railUS},get elevUS(){return elevUS},get EX(){return EX},get topoQ(){return topoQ},get TOPO_W(){return TOPO_W},get HILL_W(){return HILL_W},get exPickRoad(){return exPickRoad},get exExport(){return exExport},get exSetRate(){return exSetRate},get rKey(){return rKey},get rateHtml(){return rateHtml},POI_CATS,get POI_BAN(){return POI_BAN},osrm,overpass,get S(){return S},analyze,geoScoreUS,get usSections(){return usSections},roadClass,get usTier(){return usTier},get twice(){return twice},get twiceP(){return twiceP}};
 /* never show maypoles ("Maibaum") – there are far too many and they are not what this is about */
 const POI_BAN=t=>/mai[\s-]?baum|maypole/i.test([t.name,t.alt_name,t.old_name,t.official_name,t.short_name,t['name:de'],t['name:en'],t.description].filter(Boolean).join(' | '));
 const POI_DEF=['motor','oldfuel','odd','attraction','biergarten','view','museum'];
@@ -3586,6 +3586,7 @@ function drvRouteEval(){
   }
   if(box.innerHTML!==html)box.innerHTML=html;
 }
+$('#drvSnd').onclick=()=>{DRV.snd=!DRV.snd;try{localStorage.setItem('flrp_drvsnd',DRV.snd?'1':'0');}catch(e){}drvSndBtn();if(DRV.snd){drvAudio();drvChime();}};
 $('#drvRoute').onclick=()=>{if(!DR.on&&!S.cur){toast('Plan a route first (Plan tab), then it can be followed here.',4500);return;}drvRouteShow(!DR.on);};
 $('#btnDriveRt').onclick=()=>{
   if(!S.cur){toast('Plan or open a route first.');return;}
@@ -3612,6 +3613,62 @@ function drvAhead(L_,exclude,head){
       best={d,l};}});
   return best;
 }
+
+/* ---- acoustic alert: one chime (and a short buzz where the device can) when the GPS locks onto a stretch that still wants a rating – once per stretch ---- */
+const drvSndPref=()=>{try{return localStorage.getItem('flrp_drvsnd')!=='0';}catch(e){return true;}};
+function drvAudio(){
+  try{if(!DRV.au){const A=window.AudioContext||window.webkitAudioContext;if(A)DRV.au=new A();}
+    if(DRV.au&&DRV.au.state==='suspended')DRV.au.resume();}catch(e){}
+  return DRV.au||null;
+}
+function drvChime(){
+  try{
+    const c=drvAudio();
+    if(c){const t=c.currentTime;[[880,0],[1175,.17],[1568,.34]].forEach(([f,d])=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.4,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.32);
+      o.connect(g);g.connect(c.destination);o.start(t+d);o.stop(t+d+.34);});}
+    if(navigator.vibrate)navigator.vibrate([110,70,110]);
+  }catch(e){}
+}
+function drvSndBtn(){const b=$('#drvSnd');if(b){b.textContent=DRV.snd?'🔔 Alert on':'🔕 Alert off';b.classList.toggle('on',!!DRV.snd);}}
+function drvAlertCheck(){
+  if(!DRV.snd||!DRV.cur)return;
+  const k=rKey(DRV.cur);
+  if(DRV.alerted.has(k))return;
+  DRV.alerted.add(k);
+  if(!(rLoad()[k]))drvChime();   /* a stretch you have already rated needs no wake-up call */
+}
+/* ---- acoustic alert: ONE train-horn blast when the GPS locks onto a US-feeling stretch that still needs a rating (wakes the pilot, never repeats for the same stretch) ---- */
+const drvBeepPref=()=>{try{return localStorage.getItem('flrp_drvbeep')!=='0';}catch(e){return true;}};
+function drvAudioInit(){try{if(!DRV.audio){const AC=window.AudioContext||window.webkitAudioContext;if(AC)DRV.audio=new AC();}if(DRV.audio&&DRV.audio.state==='suspended')DRV.audio.resume();}catch(e){}}
+/* Nathan K5LA, the American freight-train horn: five chimes D#4 · F#4 · G#4 · B4 · D#5, one blast of ~1.3 s (breathy start, slightly flat for a moment, then the chord) */
+const K5LA=[311.13,369.99,415.30,493.88,622.25];
+function drvBeep(){
+  try{
+    drvAudioInit();const a=DRV.audio;if(!a)return;
+    const t0=a.currentTime+.03,hold=1.05,end=t0+.07+hold+.32;
+    const master=a.createGain(),lp=a.createBiquadFilter?a.createBiquadFilter():null;
+    master.gain.setValueAtTime(0,t0);master.gain.linearRampToValueAtTime(.95,t0+.07);master.gain.setValueAtTime(.95,t0+.07+hold);master.gain.exponentialRampToValueAtTime(.001,end);
+    if(lp){lp.type='lowpass';lp.frequency.value=2600;lp.Q.value=.7;master.connect(lp);lp.connect(a.destination);}else master.connect(a.destination);
+    K5LA.forEach((f,i)=>{
+      [['sawtooth',.10,0],['square',.045,i%2?4:-4]].forEach(([type,vol,cents])=>{
+        const o=a.createOscillator(),g=a.createGain();o.type=type;
+        o.frequency.setValueAtTime(f*.965,t0);o.frequency.exponentialRampToValueAtTime(f,t0+.12);   /* the horn starts a little flat */
+        if(o.detune)o.detune.value=cents;
+        g.gain.value=vol;o.connect(g);g.connect(master);o.start(t0);o.stop(end+.05);});
+    });
+    if(navigator.vibrate)navigator.vibrate([250,100,250]);
+  }catch(e){}
+}
+function drvAlert(l){
+  if(!DRV.beepOn||!l||!l.tier)return;                 /* only US-feeling stretches (not plain scenic roads) */
+  const k=rKey(l);DRV.alerted=DRV.alerted||new Set();
+  if(DRV.alerted.has(k))return;DRV.alerted.add(k);     /* once per stretch, for the whole drive */
+  if((rLoad()[k]||{}).r)return;                        /* already rated by you: nothing to wake up for */
+  drvBeep();
+}
+function drvBeepBtn(){const b=$('#drvBeep');if(b){b.textContent=DRV.beepOn?'🚂 Horn on':'🔕 Horn off';b.classList.toggle('on',!!DRV.beepOn);}}
+$('#drvBeep').onclick=()=>{DRV.beepOn=!DRV.beepOn;try{localStorage.setItem('flrp_drvbeep',DRV.beepOn?'1':'0');}catch(e){}drvBeepBtn();if(DRV.beepOn)drvBeep();};
 function drvEval(){
   if(!DRV.ll)return;
   const {us,sc}=drvLines(),head=drvHeading(),p=DRV.ll;
@@ -3619,7 +3676,7 @@ function drvEval(){
   const loaded=(EX.vis||[]).some(t=>t.chains&&t.res&&t.res[exCarKey()]);
   let now='',ahead='';
   if(near&&near.d<40){
-    const l=near.c.pts,f=l.f||{};DRV.cur=l;DRV.curI=near.i;DRV.recent=l;DRV.recentT=Date.now();
+    const l=near.c.pts,f=l.f||{};DRV.cur=l;DRV.curI=near.i;DRV.recent=l;DRV.recentT=Date.now();drvAlert(l);
     let dir=0;if(head!=null){const sb=brg(l[near.i],l[near.i+1]);dir=Math.abs(((sb-head+540)%360)-180)<90?1:-1;}
     const rem=dir?drvAlong(l,near.i,dir):null;
     const tr=exTier(l);now=`${TIER_EM[tr]} ${TIERN[tr]} US-feeling${tr!==(l.tier||'bronze')?' (your tier)':''} · ${f.hw||'road'}${f.ref?' '+f.ref:''}`;
@@ -3647,6 +3704,7 @@ function drvEval(){
   $$('#drvBtns [data-drate]').forEach(b=>{const r=b.dataset.drate;b.classList.toggle('on',!!rt&&(r==='no'?rt==='no':(rt===r||rt==='both')));b.disabled=!tgt;b.style.opacity=tgt?1:.5;});
   {const ok=!!(tgt&&tgt.tier),mt=ok?(exMine()[rKey(tgt)]||''):'';$$('#drvBtns [data-dmine]').forEach(b=>{b.classList.toggle('on',!!mt&&b.dataset.dmine===mt);b.disabled=!ok;b.style.opacity=ok?1:.5;});}
   $('#drvNow').textContent=now;$('#drvAhead').textContent=ahead+(tgt&&!DRV.cur?' · (rating applies to the stretch you just left)':'');
+  drvAlertCheck();
 }
 function drvOnPos(pos){
   const c=pos.coords,ll=[c.latitude,c.longitude],acc=c.accuracy!=null?c.accuracy:9999,tn=Date.now();
@@ -3725,7 +3783,8 @@ function drvFollowSet(on){DRV.follow=on;drvHuLayout();$('#drvFollow').classList.
 async function drvStart(){
   if(DRV.on)return;
   if(!navigator.geolocation||gpsInsecure()){toast(gpsHelp('insecure'),9000);return;}
-  exInit();exLocStop();DRV.on=true;DRV.hu=drvHuPref();HU.lay=false;HU.init=false;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
+  DRV.beepOn=drvBeepPref();DRV.alerted=new Set();drvAudioInit();drvBeepBtn();
+  exInit();exLocStop();DRV.on=true;DRV.snd=drvSndPref();DRV.alerted=new Set();drvAudio();drvSndBtn();DRV.hu=drvHuPref();HU.lay=false;HU.init=false;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
   const us=$('#exShowUs');if(us&&!us.checked){us.checked=true;us.dispatchEvent(new Event('change'));}
   $('#exWrap').classList.add('driving');document.body.classList.add('drv');$('#exDrive').hidden=false;$('#drvNow').textContent='Waiting for GPS…';$('#drvAhead').textContent='';$('#drvGps').textContent='';
   drvFollowSet(true);fsSync();
