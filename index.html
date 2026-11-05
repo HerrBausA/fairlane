@@ -1461,7 +1461,7 @@ async function osrm(wps,avoid){
     try{
       const j=await call(b,ex);
       if(j.code==='Ok'&&j.routes&&j.routes[0]){if(ex)exOK[b]=true;const pk=pick(j);return {route:pk.route,mw:pk.mw,good:!avoid||pk.mw<=.3};}
-      if(ex&&j.code&&!/Too|Limit/i.test(j.code+(j.message||''))&&exOK[b]===undefined)exOK[b]=false;
+      if(ex&&/Invalid/i.test(j.code||'')&&exOK[b]===undefined)exOK[b]=false;   /* only "InvalidValue/Query" means unsupported – NoRoute/NoSegment/Too many requests must not switch the exclusion off for good */
     }catch(e){/* network hiccup – never conclude "unsupported" from it */}
     if(avoid&&exOK[b]===false){   /* plain request as a last resort; the scoring then punishes motorway use */
       try{const j=await call(b,'');if(j.code==='Ok'&&j.routes&&j.routes[0]){const pk=pick(j);return {route:pk.route,mw:pk.mw,good:pk.mw<=.3};}}catch(e){}
@@ -1481,8 +1481,45 @@ async function osrm(wps,avoid){
     handle(one(bases[0]));
     setTimeout(()=>{if(!settled)launch();},3500);
   });
+  if(route&&avoid){try{return await repairMw(route,wps,call,mwKm);}catch(e){}}
   if(route)return route;
   throw new Error('Routing service unavailable');
+}
+/* A server that ignores "exclude motorway" (or a start/finish next to the Autobahn) still returns Autobahn. Then each Autobahn run gets a via point
+   3–6 km beside it (both sides tried) so the router has to take the parallel roads; the result with the least Autobahn wins.
+   The extra legs are merged back so the checkpoints / roadbook still line up with the user's waypoints. */
+function mwRuns(rt){
+  const st=flatten(rt),runs=[];let cur=null;
+  st.forEach((x,i)=>{if(roadClass(x)==='mw'){if(!cur)cur={a:x.loc,leg:x.leg,cum:x.cum,d:0};cur.d+=x.dist;cur.b=(st[i+1]||x).loc;cur.leg2=x.leg;}else if(cur){runs.push(cur);cur=null;}});
+  if(cur)runs.push(cur);return runs.filter(r=>r.d>=500);
+}
+function mergeLegs(rt,groups){   /* groups[k] = number of consecutive router legs that make up the user's leg k */
+  let i=0;const out=[];
+  groups.forEach(n=>{const ls=rt.legs.slice(i,i+n);i+=n;if(n===1){out.push(ls[0]);return;}
+    const steps=[];ls.forEach((l,k)=>{const ss=l.steps.slice();if(k<ls.length-1)ss.pop();if(k>0&&ss[0]){ss[0]=Object.assign({},ss[0],{maneuver:Object.assign({},ss[0].maneuver,{type:'continue',modifier:'straight'})});}steps.push(...ss);});
+    out.push({steps,distance:ls.reduce((a,l)=>a+l.distance,0),duration:ls.reduce((a,l)=>a+l.duration,0),summary:ls[0].summary||''});});
+  rt.legs=out;return rt;
+}
+async function repairMw(route,wps,call,mwKm){
+  let best=route,bm=mwKm(route);const km0=route.distance/1000;
+  if(bm<=.3)return route;
+  for(let round=0;round<2&&bm>.3;round++){
+    const runs=mwRuns(best);if(!runs.length)break;
+    const tries=await Promise.all([1,-1].map(async side=>{
+      try{
+        const per=wps.map(()=>[]);
+        runs.forEach(r=>{const a=[r.a[1],r.a[0]],b=[r.b[1],r.b[0]],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2],off=Math.min(6000,Math.max(3000,r.d*.2));
+          per[Math.min(wps.length-2,r.leg)].push({cum:r.cum,ll:dest(mid,(brg(a,b)+90*side+360)%360,off)});});
+        const nw=[],groups=[];
+        wps.forEach((w,i)=>{nw.push(w);if(i<wps.length-1){const v=per[i].sort((x,y)=>x.cum-y.cum);v.forEach(x=>nw.push(x.ll));groups.push(v.length+1);}});
+        const path=nw.map(c=>c[1].toFixed(6)+','+c[0].toFixed(6)).join(';');
+        const r=await fetchT(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${path}?overview=full&geometries=geojson&steps=true${exOK['https://routing.openstreetmap.de/routed-car']===true?'&exclude=motorway':''}`,{},22000);
+        const j=await r.json();if(j.code!=='Ok'||!j.routes||!j.routes[0])return null;
+        const rt=mergeLegs(j.routes[0],groups);return {rt,mw:mwKm(rt)};
+      }catch(e){return null;}}));
+    tries.forEach(t=>{if(t&&t.mw<bm-.3&&t.rt.distance/1000<Math.max(km0*1.7,km0+25)){best=t.rt;bm=t.mw;}});
+  }
+  best._mw=bm;best._repaired=bm<mwKm(route);return best;
 }
 /* run up to n jobs at once, results keep their order */
 async function pool(n,items,fn){
@@ -1647,7 +1684,8 @@ function usSections(r){
   const segs=[];let km=0;const tk={bronze:0,silver:0,gold:0},hwF=r.m?clamp(r.m.main+.9*r.m.sec+.5*r.m.local,.3,1):.85;
   for(let i=0;i<n;){if(!ok[i]){i++;continue;}let j=i;while(j<n&&ok[j])j++;
     if((j-i)*.06>=.7){const seg=rs.slice(i,Math.min(n,j+1));let ss=0,sn=0,st=0;for(let k=i;k<j;k++){ss+=sight[k-(k%3)]||0;sn++;if(k<hd.length-5&&an(hd[k+5],hd[k])<=6)st++;}
-      seg.tier=usTier((j-i)*.06,ss/sn,hwF,st/sn);tk[seg.tier]+=(j-i)*.06;segs.push(seg);km+=(j-i)*.06;}i=j;}
+      seg.tier='bronze';  /* live geometry only (no ready-made classification here): no map evidence → never Silver/Gold, so routes never show Gold that Explore does not know */
+      tk[seg.tier]+=(j-i)*.06;segs.push(seg);km+=(j-i)*.06;}i=j;}
   return r._sec={segs,km,tk};
 }
 /* ---- Route planning with the ready-made data (GitHub): the classified stretches of the areas the route crosses are matched against the route.
@@ -1713,7 +1751,7 @@ const scoreGeo=(m,D,us)=>(us?geoScoreUS:geoScore)(m,D);
 const twiceP=r=>twice(r)?35+50*clamp(r.m.overKm/Math.max(5,r.m.km*.12),0,1):0;
 const twice=r=>r.m.overKm>.3,dirty=r=>!!(r.surf&&r.surf.km>.1);
 const topoAdj=r=>!r.us?0:preBonus(r)+(r.m.topo?6*(r.m.topo.s-.5)-12*clamp((r.m.topo.gpk-8)/12,0,1):0)-(r.m.rail?16*r.m.rail.gp+18*r.m.rail.dp:0)+(r.m.rail&&r.m.rail.pp!=null?10*r.m.rail.pp+8*r.m.rail.rp-14*r.m.rail.sp:0);
-const finalOf=r=>topoAdj(r)+(r.scN!=null?r.geo+30*r.scN:r.geo/.7)-twiceP(r)-(dirty(r)?30:0)-(r.us&&r.m.mw>.02?80*Math.min(1,r.m.mw/.1):0);
+const finalOf=r=>topoAdj(r)+(r.scN!=null?r.geo+30*r.scN:r.geo/.7)-twiceP(r)-(dirty(r)?30:0)-((r.us||r.avoid)&&r.m.mw>.02?80*Math.min(1,r.m.mw/.1):0);
 /* Topography: elevation (Open-Meteo, free) at 20 points along the route plus 4 points 1.2 km around each → rolling relief
    and "exposure" (road above its surroundings = far views). Quietly skipped when the service is unreachable. */
 async function elevUS(r){
@@ -1895,7 +1933,7 @@ async function plan(){
           if(c.refine&&(c.soft?rt.distance/1000>D*1.3:Math.abs(rt.distance/1000/D-1)>.14)){const sc=clamp(D/(rt.distance/1000),.55,1.9);b=c.build(sc);rt=await osrm(b.wps,avoid);}
           const steps=flatten(rt),m=analyze(rt,steps);
           busy(true,`Scouting routes… (${++doneN} of ${cands.length})`);
-          return {rt,steps,meta:b.meta,m,geo:scoreGeo(m,D,us),pts:m.pts,us,poiIds:selIds,vias:[]};
+          return {rt,steps,meta:b.meta,m,geo:scoreGeo(m,D,us),pts:m.pts,us,avoid,poiIds:selIds,vias:[]};
         }catch(e){console.warn(e);if(attempt===0)await sleep(700);}
       }
       busy(true,`Scouting routes… (${++doneN} of ${cands.length})`);return null;
@@ -1907,7 +1945,7 @@ async function plan(){
     const uniq=[];res.forEach(r=>{if(!uniq.some(u=>Math.abs(u.m.km-r.m.km)<.8&&Math.abs(u.m.curv-r.m.curv)<2))uniq.push(r);});
     uniq.sort((a,b)=>(twice(a)-twice(b))||(b.geo-a.geo));   // roads used twice go to the back
     let pool0=uniq;
-    if(us){const nm=pool0.filter(r=>r.m.mw<=.02);if(nm.length)pool0=nm;}        // US-feeling: no autobahn at all when there is any alternative
+    if(avoid){const nm=pool0.filter(r=>r.m.mw<=.02);if(nm.length)pool0=nm;}        // US-feeling: no autobahn at all when there is any alternative
     {const nt=pool0.filter(r=>!twice(r));if(nt.length)pool0=nt;}                 // out-and-back routes only when nothing else exists
     let top=pool0.slice(0,3);
     let pre=false;
@@ -1926,7 +1964,7 @@ async function plan(){
       top.forEach(r=>{r.scN=r.sc&&mx>0?r.sc.raw/mx:null;});
     }
     const haveSc=top.some(r=>r.scN!=null);
-    top.forEach(r=>{r.final=topoAdj(r)+(haveSc?r.geo+30*(r.scN==null?.4:r.scN):r.geo/.7)-twiceP(r)-(dirty(r)?30:0)-(r.us&&r.m.mw>.02?80*Math.min(1,r.m.mw/.1):0);});
+    top.forEach(r=>{r.final=topoAdj(r)+(haveSc?r.geo+30*(r.scN==null?.4:r.scN):r.geo/.7)-twiceP(r)-(dirty(r)?30:0)-((r.us||r.avoid)&&r.m.mw>.02?80*Math.min(1,r.m.mw/.1):0);});
     top.sort((a,b)=>b.final-a.final);
     nameRoutes(top);
     S.routes=top;S.userPicked=false;S.hlOff=false;busy(false);renderCards();showRoute(0);pavedEnqueue(top,false,true);
@@ -1940,7 +1978,7 @@ async function plan(){
       if(scs&&scs.every(Boolean))top.forEach((r,i)=>{r.sc=scs[i];});
       const mx2=Math.max(0,...top.map(r=>r.sc?r.sc.raw:0));top.forEach(r=>{r.scN=r.sc&&mx2>0?r.sc.raw/mx2:null;});
       const hs=top.some(r=>r.scN!=null);
-      top.forEach(r=>{r.final=topoAdj(r)+(hs?r.geo+30*(r.scN==null?.4:r.scN):r.geo/.7)-twiceP(r)-(dirty(r)?30:0)-(r.us&&r.m.mw>.02?80*Math.min(1,r.m.mw/.1):0);});
+      top.forEach(r=>{r.final=topoAdj(r)+(hs?r.geo+30*(r.scN==null?.4:r.scN):r.geo/.7)-twiceP(r)-(dirty(r)?30:0)-((r.us||r.avoid)&&r.m.mw>.02?80*Math.min(1,r.m.mw/.1):0);});
       if(!S.userPicked){top.sort((a,b)=>b.final-a.final);nameRoutes(top);S.routes=top;renderCards();showRoute(0,true);}else renderCards();
       toast('Routes re-checked with the live scenery and guardrail count.');
     }catch(e){console.warn(e);}})();
@@ -1962,14 +2000,14 @@ async function bestFor(us,D,rng,label){
           let b=c.build(1),rt=await osrm(b.wps,avoid);
           if(c.refine&&(c.soft?rt.distance/1000>D*1.3:Math.abs(rt.distance/1000/D-1)>.14)){const sc=clamp(D/(rt.distance/1000),.55,1.9);b=c.build(sc);rt=await osrm(b.wps,avoid);}
           const steps=flatten(rt),m=analyze(rt,steps);
-          const r={rt,steps,meta:b.meta,m,geo:scoreGeo(m,D,us),pts:m.pts,us,poiIds:new Set(S.sel.keys()),vias:[]};
+          const r={rt,steps,meta:b.meta,m,geo:scoreGeo(m,D,us),pts:m.pts,us,avoid,poiIds:new Set(S.sel.keys()),vias:[]};
           r.final=finalOf(r);busy(true,`${label} – scouting routes… (${++doneN} of ${cands.length})`);return r;
         }catch(e){console.warn(e);if(attempt===0)await sleep(700);}
       }
       busy(true,`${label} – scouting routes… (${++doneN} of ${cands.length})`);return null;
     })).filter(Boolean);
     res.sort((a,b)=>b.final-a.final);
-    {let f=res;if(us){const nm=f.filter(r=>r.m.mw<=.02);if(nm.length)f=nm;}const nt=f.filter(r=>!twice(r));if(nt.length)f=nt;res.splice(0,res.length,...f);}
+    {let f=res;if(avoid){const nm=f.filter(r=>r.m.mw<=.02);if(nm.length)f=nm;}const nt=f.filter(r=>!twice(r));if(nt.length)f=nt;res.splice(0,res.length,...f);}
     if(us){const tp=res.slice(0,3);await preApply(tp);await pool(3,tp,async t=>{if(await qualUS(t)||t._pre)t.final=finalOf(t);});tp.sort((a,b)=>b.final-a.final);res.splice(0,res.length,...tp);}   /* only routes that passed the hill / rail / signal check compete */
     return res[0]||null;
   }finally{$('#usMode').checked=prev;}
@@ -2035,7 +2073,7 @@ function renderCards(){
   $('#results').innerHTML=S.routes.map((r,i)=>{
     r.tsec=carTime(r);
     return `<div class="rcard" data-i="${i}"><h3>${r.letter} · ${esc(r.name)}</h3><div class="stars">${stars(r.final)} <span style="font-family:'Courier Prime';font-size:12px;color:#6b6250">${Math.round(r.final)}/100</span></div>
-<div class="meta">${r.us&&r.m.mw>.02?`<b style="color:#8f1d19">⚠ ${Math.round(r.m.mw*100)}% autobahn – that part is not US-feeling</b><br>`:''}${r.m.km.toFixed(0)} km · ~${fmtT(r.tsec)} driving · ${Math.round(r.m.curv)}°/km curvy · ${Math.round(r.m.mw*100)}% motorway${r.us?`<br>★ ${Math.round(r.m.runShare*100)}% open-road straights · longest ${r.m.longest.toFixed(1)} km${r.m.sight?` · sight line ~${(r.m.sight/1000).toFixed(1)} km`:''}${r.m.rail?`<br>★ two-lane highway: ${r.m.rail.dp>.25?'⚠ divided-road sections':'✓ single carriageway'} · guardrails ${r.m.rail.gp>.5?'many':r.m.rail.gp>.15?'some':'few'}${r.m.rail.pp!=null?` · ${r.m.rail.pp>.25?'✓ wooden poles':''}${r.m.rail.rp>.3?' ✓ railway alongside':''}${r.m.rail.sp>.3?' ⚠ traffic lights/roundabouts':''}`:''}`:''}${r.m.topo?`<br>★ terrain: ${r.m.topo.gpk<3?'flat plain':r.m.topo.gpk<14?'gently rolling':'hilly'}, ${r.m.topo.exp>=8?'road above the land – far views':'open land'}`:''}`:''}${r.edited?'<br>✎ re-routed by you':''}<br>${surfTxt(r)} · ${twice(r)?`⚠ ${r.m.overKm.toFixed(1)} km road used twice`:'✓ no road twice'}</div>
+<div class="meta">${(r.us||r.avoid)&&r.m.mw>.02?`<b style="color:#8f1d19">⚠ ${Math.round(r.m.mw*100)}% autobahn – ${r.us?'that part is not US-feeling':'could not be avoided here'}</b><br>`:''}${r.m.km.toFixed(0)} km · ~${fmtT(r.tsec)} driving · ${Math.round(r.m.curv)}°/km curvy · ${Math.round(r.m.mw*100)}% motorway${r.us?`<br>★ ${Math.round(r.m.runShare*100)}% open-road straights · longest ${r.m.longest.toFixed(1)} km${r.m.sight?` · sight line ~${(r.m.sight/1000).toFixed(1)} km`:''}${r.m.rail?`<br>★ two-lane highway: ${r.m.rail.dp>.25?'⚠ divided-road sections':'✓ single carriageway'} · guardrails ${r.m.rail.gp>.5?'many':r.m.rail.gp>.15?'some':'few'}${r.m.rail.pp!=null?` · ${r.m.rail.pp>.25?'✓ wooden poles':''}${r.m.rail.rp>.3?' ✓ railway alongside':''}${r.m.rail.sp>.3?' ⚠ traffic lights/roundabouts':''}`:''}`:''}${r.m.topo?`<br>★ terrain: ${r.m.topo.gpk<3?'flat plain':r.m.topo.gpk<14?'gently rolling':'hilly'}, ${r.m.topo.exp>=8?'road above the land – far views':'open land'}`:''}`:''}${r.edited?'<br>✎ re-routed by you':''}<br>${surfTxt(r)} · ${twice(r)?`⚠ ${r.m.overKm.toFixed(1)} km road used twice`:'✓ no road twice'}</div>
 <div class="bar" title="Scenery"><i style="width:${r.scN!=null?Math.round(r.scN*100):50}%"></i></div></div>`;}).join('');
   $$('.rcard').forEach(c=>c.onclick=()=>{S.userPicked=true;showRoute(+c.dataset.i);});
 }
@@ -3526,7 +3564,7 @@ async function rtOpen(rec){
     const avoid=!!rec.avoid||!!rec.us,rt=await osrm(rec.wps.map(w=>w.ll),avoid);
     if(my!==S.seq)return;
     const steps=flatten(rt),m=analyze(rt,steps),us=!!rec.us;
-    const r={rt,steps,meta:rec.wps.map(w=>w.poi?{poi:w.poi}:null),m,geo:scoreGeo(m,m.km,us),pts:m.pts,us,poiIds:new Set(S.sel.keys()),vias:[],edited:true,final:0};
+    const r={rt,steps,meta:rec.wps.map(w=>w.poi?{poi:w.poi}:null),m,geo:scoreGeo(m,m.km,us),pts:m.pts,us,avoid,poiIds:new Set(S.sel.keys()),vias:[],edited:true,final:0};
     if(us)await preApply([r]);
     r.final=finalOf(r);nameRoutes([r]);r.name=rec.name;
     S.routes=[r];S.userPicked=true;S.hlOff=false;busy(false);renderCards();showRoute(0);pavedEnqueue([r],false,true);
