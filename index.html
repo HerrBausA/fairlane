@@ -459,7 +459,7 @@ h1.logo-title img{display:block;width:min(560px,52vw);height:auto;max-width:100%
 body.drv #mnav{display:none!important}   /* the bottom tab bar would cover the drive-mode buttons */
 .drvcar{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#1b6fc4;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 6px #fff;transition:transform .4s}
 .drvpulse{position:relative;width:34px;height:34px}.drvpulse:before{content:'';position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:rgba(27,111,196,.35);animation:drvp 1.8s ease-out 4}.drvpulse>*{position:absolute;left:0;top:0}@keyframes drvp{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.2);opacity:0}}.drvdot{margin:8px;width:18px;height:18px;border-radius:50%;background:#1b6fc4;border:3px solid #fff;box-shadow:0 0 0 2px #1b6fc4,0 0 10px rgba(27,111,196,.6)}
-@media (max-width:900px){#view-ex.on{display:block}.exside{width:auto;height:auto;max-height:none;border-right:0;border-bottom:4px solid #cfd8df}#exDock{left:10px;bottom:10px}body[data-mtab="explore"] .sidebar,body[data-mtab="train"] .sidebar{display:none}}
+@media (max-width:900px){#view-ex.on{display:block}.exside{width:auto;height:auto;max-height:none;border-right:0;border-bottom:4px solid #cfd8df}#exDock{left:10px;bottom:10px}body[data-mtab="explore"] .sidebar,body[data-mtab="train"] .sidebar,body[data-mtab="cl"] .sidebar{display:none}}
 body[data-mtab="explore"] .sidebar,body[data-mtab="train"] .sidebar{display:none}
 body[data-mtab="explore"] .app,body[data-mtab="train"] .app{grid-template-columns:1fr}
 body[data-mtab="explore"] .gauges,body[data-mtab="train"] .gauges{visibility:hidden}
@@ -580,6 +580,35 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
   #drvBtns .drvTier{flex:1 1 100%}
   #drvBtns .drvTier button{min-height:54px;font-size:28px}
 }
+
+/* ---- Explore / classification: only what is needed right now; the rest unfolds on demand ---- */
+.exside .pgrp.acc{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;padding:7px 4px;margin:6px 0 2px;border-top:2px solid #cfd8df}
+.exside .pgrp.acc:before{content:'▸';font-size:13px;width:12px}.exside .pgrp.acc.open:before{content:'▾'}
+.exside .accBody[hidden]{display:none}
+.exside.nohelp .hint:not(.keep){display:none}
+.exside h2 .helpBtn{float:right;font-size:13px;padding:2px 9px;margin-top:-2px}
+#exWrap .cartouche{display:none}
+#drvCtl:not(.open) .drvMore{display:none}
+#drvCtl #drvMoreBtn.on{background:#cfe8ff}
+#drvBtns.none{display:none}
+.clrow{display:none}
+body.clmode #drvBtns>[data-drate],body.clmode #drvBtns>.drvTier{display:none}
+body.clmode #drvBtns .clrow{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 100%}
+.clrow>span{flex:1 1 100%;font:400 11px/1.1 'Special Elite',monospace;color:#2c2519;background:rgba(255,253,245,.85);padding:1px 4px;align-self:flex-start;width:max-content;max-width:100%;flex:none}
+#drvBtns .clrow button{flex:1 1 0;min-width:0;min-height:44px;font-size:16px;padding:0 2px}
+@media (max-height:480px){#drvBtns .clrow button{min-height:34px;font-size:14px}.clrow>span{flex:0 0 100%;width:auto}#drvBtns .clrow{gap:3px}}
+body:not(.clmode) #clSide{display:none}body.clmode #exSide{display:none}
+body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-template-columns:1fr}body[data-mtab="cl"] .gauges{visibility:hidden}
+/* US speed-limit sign (MUTCD R2-1 look): white plate, black inset border, black lettering */
+#drvTop{position:relative}
+.usSign{position:absolute;right:8px;top:6px;width:58px;padding:4px 2px 3px;background:#fff;color:#000;text-align:center;border-radius:6px;box-shadow:0 0 0 2px #fff,0 0 0 3px #888,inset 0 0 0 2px #fff,inset 0 0 0 4px #000;font-family:'Oswald','Arial Narrow',sans-serif;line-height:1;z-index:2}
+.usSign[hidden]{display:none}
+.usSign b{display:block;font-weight:600;font-size:11px;letter-spacing:.02em}
+.usSign i{display:block;font-style:normal;font-weight:700;font-size:32px;line-height:1.02;margin-top:1px}
+.usSign small{display:block;font-size:8px;letter-spacing:.06em;margin-top:1px;color:#333}
+.usSign.over{box-shadow:0 0 0 3px #c92a2a,inset 0 0 0 2px #fff,inset 0 0 0 4px #c92a2a}.usSign.over i{color:#c92a2a}
+#drvTop.hasSpd{padding-right:78px}
+@media (max-height:480px){.usSign{width:46px;top:4px}.usSign b{font-size:9px}.usSign i{font-size:25px}.usSign small{display:none}#drvTop.hasSpd{padding-right:64px;min-height:64px;box-sizing:border-box}}
 </style>
 </head>
 <body>
@@ -727,6 +756,7 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
     <div class="tab" data-tab="rb">Roadbook</div>
     <div class="tab" data-tab="explore">Explore</div>
     <div class="tab" data-tab="train">Training</div>
+    <div class="tab" data-tab="cl">Classification</div>
     <div class="sp"></div>
     <div class="gauges" id="gauges"></div>
   </div>
@@ -755,12 +785,12 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
     <div class="exside" id="exSide">
       <h2>Explore a region</h2>
       <button class="btn red drvToggle" id="exDrive3" type="button" style="width:100%;margin:2px 0 8px;font-size:15px;padding:11px 14px">🚗 Start drive mode</button>
-      <div class="chips"><label class="chip"><input type="checkbox" id="exShowData"> 📶 Show data used</label></div><div class="hint" id="exData" hidden></div>
+      <div class="chips"><label class="chip"><input type="checkbox" id="exShowData"> 📶 Show data used</label></div><div class="hint keep" id="exData" hidden></div>
       <div class="hint">Scout an area before you go: roadside attractions plus the best stretches to drive, all in the map window. Independent of the route planner – it uses your car profile and the same US-feeling rules.</div>
       <div class="row2"><input type="text" id="exQ" placeholder="Town or region…" aria-label="Go to"><button class="btn sm" id="exGo">Go</button></div>
       <button class="btn red" id="exSearch">🔎 Search this map area</button>
       <div class="hint" style="margin-top:6px">Live: the map updates while you move it. Places and roads you have seen are remembered on this device.</div>
-      <div class="hint" id="exInfo">Move or zoom the map – each ~11 × 11 km area is loaded once and remembered, so results stay the same wherever you pan.</div>
+      <div class="hint keep" id="exInfo">Move or zoom the map – each ~11 × 11 km area is loaded once and remembered, so results stay the same wherever you pan.</div>
       <div class="pgrp">Show on map</div>
       <div class="chips">
         <label class="chip"><input type="checkbox" id="exShowUs" checked> <i class="sw" style="background:#ffb800"></i>US-feeling stretches</label>
@@ -777,7 +807,7 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
       <div class="pgrp">Teach it your taste</div>
       <div class="hint">Tap a gold, silver or bronze stretch on the map and say what it is: ★ US-feeling, 🏁 fun to drive, or 👎 not good. Many at once is quicker in the Training tab. Missed a good road, or one wrongly ignored? Switch on the button below and tap it. Ratings stay in this browser.</div>
       <button class="btn sm" id="exToTrain" style="margin:2px 6px 6px 0">🎯 Open Training</button><button class="btn sm" id="exMissed" style="margin:2px 0 6px">➕ Mark a missed road</button>
-      <div class="hint" id="exRateInfo"></div>
+      <div class="hint keep" id="exRateInfo"></div>
       <div class="chips"><button class="btn sm" id="exRateExport">⬇ Export ratings</button><button class="btn sm" id="exRateCopy">⧉ Copy</button><button class="btn sm" id="exRateClear">🗑 Clear</button></div>
       <div class="pgrp">Fix the map</div>
       <div class="hint">Places and roads are only as good as OpenStreetMap. Every place and road popup has a link to fix or add details in OpenStreetMap (you sign in there yourself). Missing something entirely? Leave a map note at the centre of the map:</div>
@@ -787,6 +817,16 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
       <div class="pgrp">Found in this window</div>
       <div class="poilist exlist" id="exList" style="display:none"></div>
     </div>
+    <div class="exside" id="clSide">
+      <h2>Classification mode</h2>
+      <button class="btn red drvToggle" id="clDrive" type="button" style="width:100%;margin:2px 0 8px;font-size:15px;padding:11px 14px">🚗 Start drive mode</button>
+      <div class="hint">Drive (as passenger, or parked) and describe the road you are on – the buttons appear as soon as there is a road to describe. For every stretch you give four answers: <b>US-feeling</b> (🥉 bronze · 🥈 silver · 🥇 gold, or ✕ not US-feeling), <b>Scenic</b> yes / no, and <b>Avenue</b> (trees on both sides) yes / no. Tap an answer again to take it back. Roads the map does not know yet are picked up from your GPS position automatically.</div>
+      <div class="hint keep" id="clInfo"></div>
+      <div class="pgrp">Your classifications</div>
+      <div class="chips"><button class="btn sm" id="clExport">⬇ Export</button><button class="btn sm" id="clCopy">⧉ Copy</button><button class="btn sm" id="clClear">🗑 Clear</button></div>
+      <div class="hint">The export contains, for every stretch, all your answers <i>and</i> what the algorithm said at that spot (tier, scenic, avenue) plus the road measurements (length, sight line, speed zones, trees, houses …). Send the file to Claude: the algorithm is refitted on exactly these differences. Answers stay in this browser until you export them.</div>
+      <button class="btn sm" id="clToExplore">🔎 Open Explore</button>
+    </div>
     <div class="map-wrap mstyle-atlas exwrap" id="exWrap">
       <div id="exMap"></div><div class="map-frame"></div>
       <div class="cartouche"><b>Explorer</b><span>Region · Scouting · Edition</span></div>
@@ -795,15 +835,18 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
       <div id="exMapBtns"><button class="btn" id="exLoc2" type="button" title="Show my location" aria-label="Show my location">📍</button><button class="btn" id="exFs2" type="button" title="Full screen map" aria-label="Full screen map">⛶</button></div>
       <div id="fsPull"><button type="button" id="fsPullBtn" aria-label="Open menu">▾ Menu</button></div>
       <div id="fsMenu" aria-hidden="true">
-        <div class="fsRow"><button type="button" data-fsm="plan">🧭 Plan</button><button type="button" data-fsm="atlas">🗺️ Map</button><button type="button" data-fsm="rb">📖 Roadbook</button><button type="button" data-fsm="explore">🔎 Explore</button><button type="button" data-fsm="train">🎯 Train</button></div>
+        <div class="fsRow"><button type="button" data-fsm="plan">🧭 Plan</button><button type="button" data-fsm="atlas">🗺️ Map</button><button type="button" data-fsm="rb">📖 Roadbook</button><button type="button" data-fsm="explore">🔎 Explore</button><button type="button" data-fsm="train">🎯 Train</button><button type="button" data-fsm="cl">🏷️ Classify</button></div>
         <div class="fsRow"><button type="button" id="fsHu">🧭 Heading up</button><button type="button" id="fsFull">⛶ Exit full screen</button><button type="button" id="fsEnd">✕ End drive</button><button type="button" id="fsClose">▴ Close</button></div>
         <small>Swipe down from the top edge of the screen to open this menu.</small>
       </div>
       <div id="exDrive" hidden>
-        <div id="drvTop"><div id="drvRt" hidden></div><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small><small id="drvAttr">© OpenStreetMap contributors</small></div>
+        <div id="drvTop"><div id="drvSpd" class="usSign" hidden title="Speed limit on this road (OpenStreetMap)"><b>SPEED</b><b>LIMIT</b><i id="drvSpdN">–</i><small>km/h</small></div><div id="drvRt" hidden></div><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small><small id="drvAttr">© OpenStreetMap contributors</small></div>
         <div id="drvZ"><button type="button" id="drvZi" aria-label="Zoom in">＋</button><button type="button" id="drvZo" aria-label="Zoom out">－</button></div>
-        <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div></div>
-        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvBeep">🚂 Horn on</button><button type="button" id="drvRoute">🧭 Planned route</button><button type="button" id="drvFollow">⌖ Follow</button><button type="button" id="drvHu">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
+        <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div>
+          <div class="clrow"><span>US-feeling</span><button type="button" data-cl="us:bronze">🥉</button><button type="button" data-cl="us:silver">🥈</button><button type="button" data-cl="us:gold">🥇</button><button type="button" data-cl="us:no">✕</button></div>
+          <div class="clrow"><span>Scenic</span><button type="button" data-cl="sc:y">✓ Yes</button><button type="button" data-cl="sc:n">✕ No</button></div>
+          <div class="clrow"><span>Avenue (trees both sides)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div></div>
+        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvMoreBtn" aria-expanded="false">⋯ More</button><button type="button" id="drvBeep" class="drvMore">🚂 Horn on</button><button type="button" id="drvRoute" class="drvMore">🧭 Planned route</button><button type="button" id="drvFollow" class="drvMore">⌖ Follow</button><button type="button" id="drvHu" class="drvMore">🧭 Heading up</button><button type="button" id="drvFull" class="drvMore">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
     </div>
@@ -853,7 +896,7 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 </div>
 </div>
 <button class="btn red pmback" id="pmBack">✕ Back to planner</button>
-<nav class="mnav" id="mnav" aria-label="Sections"><button data-m="plan" class="on"><span class="i">🧭</span>Plan</button><button data-m="atlas"><span class="i">🗺️</span>Map</button><button data-m="rb"><span class="i">📖</span>Roadbook</button><button data-m="explore"><span class="i">🔎</span>Explore</button><button data-m="train"><span class="i">🎯</span>Train</button></nav>
+<nav class="mnav" id="mnav" aria-label="Sections"><button data-m="plan" class="on"><span class="i">🧭</span>Plan</button><button data-m="atlas"><span class="i">🗺️</span>Map</button><button data-m="rb"><span class="i">📖</span>Roadbook</button><button data-m="explore"><span class="i">🔎</span>Explore</button><button data-m="train"><span class="i">🎯</span>Train</button><button data-m="cl"><span class="i">🏷️</span>Classify</button></nav>
 <div id="toast"></div>
 <style id="pageStyle"></style>
 
@@ -3191,10 +3234,11 @@ function exRateUi(){
   const all=rLoad(),v=Object.values(all),c={us:0,fun:0,both:0,no:0,miss:0};v.forEach(x=>{c[x.r]=(c[x.r]||0)+1;if(x.f&&x.f.missed)c.miss++;});
   const txt=v.length?`${v.length} rated: ★ ${c.us+c.both} US-feeling · 🏁 ${c.fun+c.both} fun · 👎 ${c.no} not good${c.miss?` (${c.miss} marked as missed roads)`:''}`:'Nothing rated yet.';
   ['#exRateInfo','#trInfo'].forEach(q=>{const el=$(q);if(el)el.textContent=txt;});
+  try{clUi();}catch(e){}
 }
 function exExport(){
   const v=Object.values(rLoad());
-  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:3,exported:new Date().toISOString(),
+  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, sc:y|n, av:y|n, algo:{us:tier or empty,sc:true|false,av:true|false} = what the algorithm said at that spot, t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from it (us / fun / both / no / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
     meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},mine:'optional per rating: the tier (bronze/silver/gold) the user chose by personal feeling for a US-feeling stretch; tier = what the algorithm said',missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
     settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed inside the stretch (50 = town), f.m50 / f.m70 = share of the stretch in 50 / 70 km/h zones',model:Object.assign({id:"28 Oct: length + straightness dominate"},US_P),car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
     ratings:v};
@@ -3203,7 +3247,7 @@ const viewTxt=f=>{if(f.view==null||f.vo==null)return '';const cut=f.sight?Math.r
 const tierBtns=l=>{const m=exMine()[rKey(l)]||'';return ['bronze','silver','gold'].map(t=>`<button class="btn sm tierb ${m===t?'red':''}" data-mine="${t}">${TIER_EM[t]} ${TIERN[t]}</button>`).join('');};
 function rateHtml(l){
   const cur=(rLoad()[rKey(l)]||{}).r,f=l.f||{};
-  return `<div class="pop"><h4>${TIERN[exTier(l)]} · US-feeling candidate</h4><p>${(f.len||0).toFixed(1)} km · sight line ~${((f.sight||0)/1000).toFixed(1)} km · ${f.hw||''}${f.ref?' '+esc(f.ref):''}</p>${f.topo?`<p>⛰ ${topoWord(f.topo.gpk)} terrain · ${f.topo.gpk} m/km relief · road ${f.topo.exp>=0?'+':''}${f.topo.exp} m above its surroundings</p>`:''}${viewTxt(f)}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div><p style="margin-top:8px">Your tier <small>(replaces the colour${l.tier?'; the algorithm says '+TIERN[l.tier]:''})</small></p><div class="ratebtns">${tierBtns(l)}</div>${osmLinks(f.wid?'w'+f.wid:'',l[Math.floor(l.length/2)])}</div>`;
+  return `<div class="pop"><h4>${TIERN[exTier(l)]} · US-feeling candidate</h4><p>${(f.len||0).toFixed(1)} km · sight line ~${((f.sight||0)/1000).toFixed(1)} km · ${f.hw||''}${f.ref?' '+esc(f.ref):''}</p>${f.topo?`<p>⛰ ${topoWord(f.topo.gpk)} terrain · ${f.topo.gpk} m/km relief · road ${f.topo.exp>=0?'+':''}${f.topo.exp} m above its surroundings</p>`:''}${viewTxt(f)}${document.body.classList.contains('clmode')?clPopup(typeof l!=='undefined'?l:pts):''}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div><p style="margin-top:8px">Your tier <small>(replaces the colour${l.tier?'; the algorithm says '+TIERN[l.tier]:''})</small></p><div class="ratebtns">${tierBtns(l)}</div>${osmLinks(f.wid?'w'+f.wid:'',l[Math.floor(l.length/2)])}</div>`;
 }
 document.addEventListener('click',e=>{
   const m=e.target.closest&&e.target.closest('[data-mine]');
@@ -3305,7 +3349,7 @@ async function exPickRoad2(ll,tok){
   L.polyline(pts,{color:'#fff',weight:12,opacity:.9,interactive:false}).addTo(EX.layMark);
   L.polyline(pts,{color:'#7b3fa0',weight:6,opacity:1,dashArray:'2 9',lineCap:'round',interactive:false}).addTo(EX.layMark);
   const cur=(rLoad()[rKey(pts)]||{}).r;
-  L.popup().setLatLng(ll).setContent(`<div class="pop"><h4>Missed-road candidate</h4><p>${f.len.toFixed(1)} km · sight line ~${(f.sight/1000).toFixed(1)} km · ${esc(f.hw)}${f.ref?' '+esc(f.ref):''}</p><p>${f.detected?'The algorithm already shows this as a US-feeling stretch.':'Not highlighted because: <b>'+esc(f.skipped.join(', ')||'no clear reason')+'</b>.'}</p>${viewTxt(f)}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div>${osmLinks('w'+f.wid,[ll.lat,ll.lng])}</div>`).openOn(EX.map);
+  L.popup().setLatLng(ll).setContent(`<div class="pop"><h4>Missed-road candidate</h4><p>${f.len.toFixed(1)} km · sight line ~${(f.sight/1000).toFixed(1)} km · ${esc(f.hw)}${f.ref?' '+esc(f.ref):''}</p><p>${f.detected?'The algorithm already shows this as a US-feeling stretch.':'Not highlighted because: <b>'+esc(f.skipped.join(', ')||'no clear reason')+'</b>.'}</p>${viewTxt(f)}${document.body.classList.contains('clmode')?clPopup(typeof l!=='undefined'?l:pts):''}<p>How does this road feel? <small>(tick what applies)</small></p><div class="ratebtns">${rateBtns(cur)}</div>${osmLinks('w'+f.wid,[ll.lat,ll.lng])}</div>`).openOn(EX.map);
 }
 /* what does OpenStreetMap really say about the trees at this spot? (live query, shown in a popup) */
 async function exAvCheck(ll){
@@ -3634,7 +3678,7 @@ const DRV={pin:null,pinT:0,on:false,watch:null,mk:null,ll:null,hist:[],head:null
 window.DRV=DRV;
 const drvKm=m=>m>=1000?(m/1000).toFixed(m>=10000?0:1)+' km':Math.round(m/10)*10+' m';
 function drvIcon(h){return L.divIcon({className:'',html:'<div class="drvpulse">'+(h==null?'<div class="drvdot"></div>':`<div class="drvcar" style="transform:rotate(${Math.round(h)}deg)">▲</div>`)+'</div>',iconSize:[34,34],iconAnchor:[17,17]});}
-function drvLines(){const k=exCarKey(),us=[],sc=[];(EX.vis||[]).forEach(t=>{const o=t.chains&&t.res&&t.res[k];if(!o)return;o.us.forEach(l=>us.push({c:{pts:l},t,l}));o.sc.forEach(l=>sc.push({c:{pts:l},t,l}));});return {us,sc};}
+function drvLines(){const k=exCarKey(),us=[],sc=[],av=[];(EX.vis||[]).forEach(t=>{const o=t.chains&&t.res&&t.res[k];if(!o)return;o.us.forEach(l=>us.push({c:{pts:l},t,l}));o.sc.forEach(l=>sc.push({c:{pts:l},t,l}));(o.av||[]).forEach(l=>av.push({c:{pts:l},t,l}));});return {us,sc,av};}
 function drvHeading(){
   const h=DRV.hist;if(h.length<2)return DRV.head;
   const a=h[0],b=h[h.length-1];if(hav(a,b)<14)return DRV.head;return brg(a,b);
@@ -3703,8 +3747,9 @@ function drvBeepBtn(){const b=$('#drvBeep');if(b){b.textContent=DRV.beepOn?'🚂
 $('#drvBeep').onclick=()=>{DRV.beepOn=!DRV.beepOn;try{localStorage.setItem('flrp_drvbeep',DRV.beepOn?'1':'0');}catch(e){}drvBeepBtn();if(DRV.beepOn)drvBeep();};
 function drvEval(){
   if(!DRV.ll)return;
-  const {us,sc}=drvLines(),head=drvHeading(),p=DRV.ll;
-  const near=exNearest(p,us),nearSc=exNearest(p,sc);
+  const {us,sc,av}=drvLines(),head=drvHeading(),p=DRV.ll;
+  const near=exNearest(p,us),nearSc=exNearest(p,sc),nearAv=exNearest(p,av);
+  DRV.algo={us:near&&near.d<40?((near.c.pts.tier)||'bronze'):'',sc:!!(nearSc&&nearSc.d<40),av:!!(nearAv&&nearAv.d<40)};   /* what the algorithm says right here – saved with every classification */
   const loaded=(EX.vis||[]).some(t=>t.chains&&t.res&&t.res[exCarKey()]);
   let now='',ahead='';
   if(near&&near.d<40){
@@ -3734,7 +3779,11 @@ function drvEval(){
   }
   const tgt=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null),rt=tgt?(rLoad()[rKey(tgt)]||{}).r:'';
   $$('#drvBtns [data-drate]').forEach(b=>{const r=b.dataset.drate;b.classList.toggle('on',!!rt&&(r==='no'?rt==='no':(rt===r||rt==='both')));b.disabled=!tgt;b.style.opacity=tgt?1:.5;});
-  {const ok=!!(tgt&&tgt.tier),mt=ok?(exMine()[rKey(tgt)]||''):'';$$('#drvBtns [data-dmine]').forEach(b=>{b.classList.toggle('on',!!mt&&b.dataset.dmine===mt);b.disabled=!ok;b.style.opacity=ok?1:.5;});}
+  {const ok=!!tgt,mt=ok?(exMine()[rKey(tgt)]||''):'';$$('#drvBtns [data-dmine]').forEach(b=>{b.classList.toggle('on',!!mt&&b.dataset.dmine===mt);b.disabled=!ok;b.style.opacity=ok?1:.5;});}
+  if(document.body.classList.contains('clmode')&&tgt){const cs=clSummary(tgt);if(cs)ahead+=' · '+cs;}
+  clBtnsUpdate(tgt);
+  drvSpdUpdate();
+  if(document.body.classList.contains('clmode')&&!DRV.cur&&!DRV.addBusy&&Date.now()-(DRV.autoT||0)>15000){DRV.autoT=Date.now();drvAddRoad(true);}   /* classification mode: pick up the road under the GPS dot by itself */
   $('#drvNow').textContent=now;$('#drvAhead').textContent=ahead+(tgt&&!DRV.cur?' · (rating applies to the stretch you just left)':'');
 }
 function drvOnPos(pos){
@@ -3745,7 +3794,7 @@ function drvOnPos(pos){
   DRV.fixes++;DRV.lastFix=tn;
   if(DRV.watch2!=null&&DRV.fixes>=3&&acc<=100){try{navigator.geolocation.clearWatch(DRV.watch2);}catch(e){}DRV.watch2=null;}   /* real GPS works: stop the second (coarse) receiver – saves battery */
   const last=DRV.hist[DRV.hist.length-1];if(!last||hav(last,ll)>8){DRV.hist.push(ll);if(DRV.hist.length>6)DRV.hist.shift();}
-  DRV.ll=ll;
+  DRV.ll=ll;DRV.kmh=(c.speed!=null&&c.speed>=0)?c.speed*3.6:null;
   if(document.hidden)return;   /* screen off / other app: just remember the position, no drawing or evaluating */
   if(DR.on)drvRouteEval();
   if(c.heading!=null&&!isNaN(c.heading)&&(c.speed==null||c.speed>1.5))DRV.head=c.heading;else{const h=drvHeading();if(h!=null)DRV.head=h;}
@@ -3902,21 +3951,25 @@ function drvStop(silent){
   setTimeout(()=>{EX.map.invalidateSize();},80);
   if(!silent){const n=Object.keys(rLoad()).length;toast(`Drive ended. ${n} stretches rated so far – export them in the Training or Explore tab.`,6000);}
 }
-$('#exDriveBtn').onclick=drvStart;$$('.drvToggle').forEach(b=>b.onclick=()=>{if(DRV.on)drvStop();else{$$('.tab').find(t=>t.dataset.tab==='explore').click();drvStart();}});
-$('#drvAdd').onclick=async()=>{
-  if(!DRV.ll){toast('No GPS position yet.',2500);return;}
-  if(DRV.cur){toast('This road is already shown – rate it with the buttons above.',3000);return;}
-  const b=$('#drvAdd');b.disabled=true;b.textContent='… looking';
+$('#exDriveBtn').onclick=drvStart;$$('.drvToggle').forEach(b=>b.onclick=()=>{if(DRV.on)drvStop();else{const want=b.id==='clDrive'||document.body.classList.contains('clmode')?'cl':'explore';$$('.tab').find(t=>t.dataset.tab===want).click();drvStart();}});
+async function drvAddRoad(auto){
+  if(!DRV.ll){if(!auto)toast('No GPS position yet.',2500);return;}
+  if(DRV.cur){if(!auto)toast('This road is already shown – rate it with the buttons above.',3000);return;}
+  if(DRV.addBusy)return;DRV.addBusy=true;
+  const b=$('#drvAdd');if(!auto){b.disabled=true;b.textContent='… looking';}
   try{
     EX.pickT0=Date.now();const r=await Promise.race([exStretchAt(DRV.ll,1500),new Promise(res=>setTimeout(()=>res({netErr:true}),55000))]);
-    if(!r.pts){toast(r.netErr?'Map servers did not answer (often overloaded) – tap the button again in a few seconds.':'No road found at your position (GPS off the road?).',4000);return;}
+    if(!r.pts){if(!auto)toast(r.netErr?'Map servers did not answer (often overloaded) – tap the button again in a few seconds.':'No road found at your position (GPS off the road?).',4000);return;}
     DRV.pin=r.pts;DRV.pinT=Date.now();DRV.cur=r.pts;DRV.recent=r.pts;DRV.recentT=Date.now();
     if(EX.layMark)EX.layMark.clearLayers();else EX.layMark=L.layerGroup().addTo(EX.map);
     L.polyline(r.pts,{color:'#fff',weight:12,opacity:.9,interactive:false}).addTo(EX.layMark);
     L.polyline(r.pts,{color:'#7b3fa0',weight:6,opacity:1,dashArray:'2 9',lineCap:'round',interactive:false}).addTo(EX.layMark);
-    toast('Road added ('+(r.f.hw||'road')+(r.f.ref?' '+r.f.ref:'')+') – now rate it.',3500);drvEval();
-  }finally{b.disabled=false;b.textContent='➕ Add this road';}
-};
+    if(!auto)toast('Road added ('+(r.f.hw||'road')+(r.f.ref?' '+r.f.ref:'')+') – now rate it.',3500);drvEval();
+  }catch(e){if(!auto)toast('Could not read the road here – try again in a moment.',3500);}
+  finally{DRV.addBusy=false;b.disabled=false;b.textContent='➕ Add this road';}
+}
+$('#drvAdd').onclick=()=>drvAddRoad(false);
+$('#drvMoreBtn').onclick=()=>{const c=$('#drvCtl'),o=c.classList.toggle('open');$('#drvMoreBtn').classList.toggle('on',o);$('#drvMoreBtn').setAttribute('aria-expanded',o);$('#drvMoreBtn').textContent=o?'⋯ Less':'⋯ More';};
 $('#drvStop').onclick=()=>drvStop();$('#drvFollow').onclick=()=>drvFollowSet(!DRV.follow);
 /* ---- pull-down menu in full screen / drive mode ---- */
 const fsIsF=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
@@ -3941,7 +3994,7 @@ $('#drvZi').onclick=()=>{try{EX.map.zoomIn(1,{animate:false});}catch(e){}};$('#d
  document.addEventListener('click',e=>{const m=$('#fsMenu');if(m&&m.classList.contains('open')&&!m.contains(e.target)&&e.target.id!=='fsPullBtn')fsMenu(false);},true);}
 
 $$('#drvBtns [data-dmine]').forEach(b=>b.onclick=()=>{
-  const l=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null);if(!l||!l.tier)return;
+  const l=DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null);if(!l)return;   /* added / scenic-only roads have no algorithm tier – your tier works all the same */
   const m=exSetMine(l,b.dataset.dmine);exBadges();drvEval();
   try{navigator.vibrate&&navigator.vibrate(40);}catch(e){}
   toast(m?'Your tier: '+TIER_EM[m]+' '+TIERN[m]:'Back to the algorithm\'s tier',1800);
@@ -3963,7 +4016,7 @@ $('#exGo').onclick=async()=>{
 };
 $('#exQ').onkeydown=e=>{if(e.key==='Enter')$('#exGo').click();};
 
-$$('.tab').forEach(t=>t.onclick=()=>{document.body.dataset.mtab=t.dataset.tab;if(window.matchMedia('(max-width:900px)').matches)window.scrollTo(0,0);$$('#mnav button').forEach(x=>x.classList.toggle('on',x.dataset.m===t.dataset.tab));$('#mapCtl')&&$('#mapCtl').classList.remove('open');$$('.tab').forEach(x=>x.classList.toggle('on',x===t));$('#view-atlas').classList.toggle('on',t.dataset.tab==='atlas');$('#view-rb').classList.toggle('on',t.dataset.tab==='rb');$('#view-ex').classList.toggle('on',t.dataset.tab==='explore');$('#view-tr').classList.toggle('on',t.dataset.tab==='train');if(t.dataset.tab==='explore')exShow();if(t.dataset.tab==='train')trShow();if(t.dataset.tab==='atlas')setTimeout(()=>map.invalidateSize(),50);else if(t.dataset.tab==='rb')renderRoadbook();});
+$$('.tab').forEach(t=>t.onclick=()=>{document.body.dataset.mtab=t.dataset.tab;if(window.matchMedia('(max-width:900px)').matches)window.scrollTo(0,0);$$('#mnav button').forEach(x=>x.classList.toggle('on',x.dataset.m===t.dataset.tab));$('#mapCtl')&&$('#mapCtl').classList.remove('open');$$('.tab').forEach(x=>x.classList.toggle('on',x===t));$('#view-atlas').classList.toggle('on',t.dataset.tab==='atlas');$('#view-rb').classList.toggle('on',t.dataset.tab==='rb');$('#view-ex').classList.toggle('on',t.dataset.tab==='explore'||t.dataset.tab==='cl');document.body.classList.toggle('clmode',t.dataset.tab==='cl');$('#view-tr').classList.toggle('on',t.dataset.tab==='train');if(t.dataset.tab==='explore'||t.dataset.tab==='cl')exShow();if(t.dataset.tab==='cl')clUi();if(t.dataset.tab==='train')trShow();if(t.dataset.tab==='atlas')setTimeout(()=>map.invalidateSize(),50);else if(t.dataset.tab==='rb')renderRoadbook();});
 const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
 document.body.dataset.mtab='plan';
 $$('#mnav button').forEach(b=>b.onclick=()=>{const m=b.dataset.m;
@@ -3979,13 +4032,106 @@ setTimeout(()=>locate(true),400);
   try{if(window.DRV&&drvHuOn())drvHuLayout();}catch(e){}
   [map,EX.map,TR.map].forEach(m=>{try{m&&!(window.DRV&&drvHuOn()&&m===EX.map)&&m.invalidateSize({animate:false});}catch(e){}});try{EX.map&&exSyncSoon();}catch(e){}},200);};
 window.addEventListener('resize',rz);window.addEventListener('orientationchange',rz);}
+/* ---- Classification mode: US-feeling (bronze/silver/gold or not), scenic y/n, avenue y/n – stored with the rating, exported, used for the next calibration ---- */
+const CL_T=['bronze','silver','gold'];
+function clState(l){
+  const x=rLoad()[rKey(l)]||{},cl=x.cl||{},r=x.r||'';
+  const us=cl.us!==undefined?cl.us:(r==='us'||r==='both')?(x.mine||'algo'):r==='no'?'no':'';
+  const sc=cl.sc!==undefined?cl.sc:(r==='fun'||r==='both')?'y':r==='no'?'n':'';
+  return {us,sc,av:cl.av||''};
+}
+function clSet(l,patch,algo){
+  const all=rLoad(),k=rKey(l);let x=all[k];_mine=null;
+  if(!x){x=all[k]=rMk(l,'',null);}
+  const st=clState(l),cl=Object.assign({us:st.us==='algo'?undefined:st.us,sc:st.sc,av:st.av},x.cl||{});
+  if(x.cl===undefined){cl.us=st.us==='algo'?undefined:st.us;cl.sc=st.sc;cl.av=st.av;}
+  Object.keys(patch).forEach(key=>{cl[key]=(cl[key]===patch[key])?'':patch[key];});
+  if(!x.cl&&algo)cl.algo=algo;else if(x.cl&&x.cl.algo)cl.algo=x.cl.algo;else if(algo)cl.algo=algo;
+  cl.t=new Date().toISOString().slice(0,16);cl.src=(DRV&&DRV.on)?'drive':'map';
+  x.cl=cl;
+  const usYes=CL_T.includes(cl.us)||(cl.us===undefined&&(x.r==='us'||x.r==='both')),sc=cl.sc==='y';
+  x.r=usYes?(sc?'both':'us'):sc?'fun':(cl.us==='no'&&cl.sc==='n'?'no':'');   /* 'not good' (hidden from the layers) only when it is neither US-feeling nor scenic */
+  if(CL_T.includes(cl.us))x.mine=cl.us;else if(cl.us!==undefined)delete x.mine;
+  if(!x.r&&!cl.av&&!cl.sc&&!cl.us)delete all[k];
+  store.set('flrp_ratings',all);_mine=null;exRateUi();exRedrawRates();
+}
+function clSummary(l){
+  const s=clState(l);if(!s.us&&!s.sc&&!s.av)return '';
+  const u=CL_T.includes(s.us)?TIER_EM[s.us]+' '+TIERN[s.us]:s.us==='no'?'not US-feeling':s.us==='algo'?'US-feeling':'';
+  return '✎ you: '+[u,s.sc==='y'?'scenic ✓':s.sc==='n'?'scenic ✗':'',s.av==='y'?'avenue ✓':s.av==='n'?'avenue ✗':''].filter(Boolean).join(' · ');
+}
+function clBtnsUpdate(tgt){
+  const bx=$('#drvBtns');if(!bx)return;
+  const was=bx.classList.contains('none'),none=!tgt;
+  bx.classList.toggle('none',none);
+  if(tgt){const st=clState(tgt);$$('#drvBtns [data-cl]').forEach(b=>{const [k,v]=b.dataset.cl.split(':');b.classList.toggle('on',k==='us'?(st.us===v||(st.us==='algo'&&false)):st[k]===v);});}
+  if(was!==none&&window.DRV&&drvHuOn()){try{drvHuLayout();}catch(e){}}
+}
+const clPopup=l=>{const st=clState(l),row=(lab,k,opts)=>`<p style="margin:6px 0 0"><b>${lab}</b></p><div class="ratebtns">${opts.map(([v,t])=>`<button class="btn sm tierb ${st[k]===v?'red':''}" data-cl="${k}:${v}">${t}</button>`).join('')}</div>`;
+  return row('US-feeling','us',[['bronze','🥉'],['silver','🥈'],['gold','🥇'],['no','✕']])+row('Scenic','sc',[['y','✓ Yes'],['n','✕ No']])+row('Avenue (trees both sides)','av',[['y','🌳 Yes'],['n','✕ No']]);};
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-cl]');if(!b)return;
+  const inDrv=!!b.closest('#drvBtns'),l=inDrv?(DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null)):EX.ratingFor;if(!l)return;
+  const [k,v]=b.dataset.cl.split(':');
+  clSet(l,{[k]:v},inDrv&&DRV.algo?DRV.algo:{us:l.tier||''});
+  exBadges();try{navigator.vibrate&&navigator.vibrate(40);}catch(x){}
+  if(inDrv){drvEval();toast(clSummary(l)||'Answer removed',1800);}else{try{EX.map.closePopup();}catch(x){}if(EX.layMark)EX.layMark.clearLayers();clUi();}
+});
+function clUi(){
+  const v=Object.values(rLoad()),c={us:0,gold:0,silver:0,bronze:0,no:0,scY:0,scN:0,avY:0,avN:0};
+  v.forEach(x=>{const cl=x.cl;if(!cl)return;if(cl.us==='no')c.no++;else if(CL_T.includes(cl.us)){c.us++;c[cl.us]++;}if(cl.sc==='y')c.scY++;if(cl.sc==='n')c.scN++;if(cl.av==='y')c.avY++;if(cl.av==='n')c.avN++;});
+  const el=$('#clInfo');if(el)el.textContent=v.length?`${v.length} stretches rated in total. Classified here: ★ ${c.us} US-feeling (🥇 ${c.gold} · 🥈 ${c.silver} · 🥉 ${c.bronze}) · ✕ ${c.no} not US-feeling · scenic ${c.scY} yes / ${c.scN} no · avenue ${c.avY} yes / ${c.avN} no`:'Nothing classified yet.';
+}
+$('#clExport').onclick=()=>$('#exRateExport').click();$('#clCopy').onclick=()=>$('#exRateCopy').click();$('#clClear').onclick=()=>{$('#exRateClear').click();clUi();};
+$('#clToExplore').onclick=()=>$$('.tab').find(t=>t.dataset.tab==='explore').click();
+
+/* ---- speed limit of the road under the GPS dot (OpenStreetMap maxspeed of the loaded roads) ---- */
+function drvSpeedLimit(p){
+  if(!p)return null;
+  const items=[];
+  (EX.smallSets||[]).forEach(z=>{if(hav(p,z.c)<z.r+80)(z.chains||[]).forEach(c=>{if(c.spd&&c.spd.length===c.pts.length)items.push({c,t:null});});});
+  const tk=EX.tiles&&EX.tiles.get(exTileKey(Math.floor(p[0]/TLAT),Math.floor(p[1]/TLON)));
+  if(tk&&tk.chains)tk.chains.forEach(c=>{if(c.spd&&c.spd.length===c.pts.length)items.push({c,t:tk});});
+  const n=exNearest(p,items);if(!n||n.d>28)return null;
+  const v=n.c.spd[n.i]!=null?n.c.spd[n.i]:n.c.spd[n.i+1];
+  return v!=null&&v>=5&&v<=130?Math.round(v/5)*5:null;
+}
+function drvSpdUpdate(){
+  const el=$('#drvSpd');if(!el)return;
+  let v=null;try{v=drvSpeedLimit(DRV.ll);}catch(e){}
+  if(v!=null){DRV.spdV=v;DRV.spdT=Date.now();}else if(DRV.spdV!=null&&Date.now()-DRV.spdT<8000)v=DRV.spdV;   /* keep the last value for a few seconds across gaps */
+  el.hidden=v==null;$('#drvTop').classList.toggle('hasSpd',v!=null);
+  if(v!=null){$('#drvSpdN').textContent=v;el.classList.toggle('over',DRV.kmh!=null&&DRV.kmh>v+5);}
+}
+
+/* ---- Explore side panel: sections fold, explanations on demand ---- */
+(function(){
+  let st={},help=false;try{st=JSON.parse(localStorage.getItem('flrp_exfold')||'{}');help=localStorage.getItem('flrp_exhelp')==='1';}catch(e){}
+  const sides=['exSide','clSide'].map(id=>document.getElementById(id)).filter(Boolean);
+  const setHelp=on=>{sides.forEach(sd=>sd.classList.toggle('nohelp',!on));try{localStorage.setItem('flrp_exhelp',on?'1':'0');}catch(e){}help=on;};
+  sides.forEach(sd=>{const h2=sd.querySelector('h2');if(h2){h2.insertAdjacentHTML('beforeend','<button class="btn sm helpBtn" type="button" title="Show or hide the explanations" aria-label="Explanations">ℹ</button>');h2.querySelector('.helpBtn').onclick=()=>setHelp(!help);}});
+  setHelp(help);
+  const side=document.getElementById('exSide');if(!side)return;
+  [...side.querySelectorAll(':scope>.pgrp')].forEach(h=>{
+    const name=h.textContent.trim();if(/^Found in this window/.test(name))return;
+    const body=document.createElement('div');body.className='accBody';
+    let n=h.nextElementSibling;while(n&&!n.classList.contains('pgrp')){const nx=n.nextElementSibling;body.appendChild(n);n=nx;}
+    h.after(body);h.classList.add('acc');h.setAttribute('role','button');h.tabIndex=0;
+    const set=o=>{body.hidden=!o;h.classList.toggle('open',o);h.setAttribute('aria-expanded',o?'true':'false');};
+    set(!!st[name]);
+    const tog=()=>{const o=body.hidden;set(o);st[name]=o;try{localStorage.setItem('flrp_exfold',JSON.stringify(st));}catch(e){}};
+    h.onclick=tog;h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
+  });
 })();
+
+})();
+
 
 /* foldable legends: give the map back its full space */
 (function(){
   let st={};try{st=JSON.parse(localStorage.getItem('flrp_legfold')||'{}');}catch(e){}
   const apply=(d,on)=>{d.classList.toggle('folded',on);const b=d.querySelector('.dockfold');b.textContent=(on?'▸':'▾')+' Legend';b.setAttribute('aria-expanded',on?'false':'true');};
-  ['mapDock','exDock'].forEach(id=>{const d=document.getElementById(id);if(!d)return;apply(d,!!st[id]);
+  ['mapDock','exDock'].forEach(id=>{const d=document.getElementById(id);if(!d)return;apply(d,st[id]===undefined?id==='exDock':!!st[id]);
     d.querySelector('.dockfold').onclick=()=>{const on=!d.classList.contains('folded');apply(d,on);st[id]=on;try{localStorage.setItem('flrp_legfold',JSON.stringify(st));}catch(e){}};});
 })();
 </script>
