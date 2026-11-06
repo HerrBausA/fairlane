@@ -608,6 +608,9 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
 .usSign small{display:block;font-size:8px;letter-spacing:.06em;margin-top:1px;color:#333}
 .usSign.over{box-shadow:0 0 0 3px #c92a2a,inset 0 0 0 2px #fff,inset 0 0 0 4px #c92a2a}.usSign.over i{color:#c92a2a}
 #drvTop.hasSpd{padding-right:78px}
+#drvTop.idle{background:none;border:0;box-shadow:none;padding:0;min-height:0;pointer-events:none}
+#drvTop.idle #drvNow,#drvTop.idle #drvAhead,#drvTop.idle #drvGps{display:none}
+#drvTop.idle #drvAttr{display:inline-block;background:rgba(255,255,255,.75);padding:1px 5px;border-radius:3px;pointer-events:auto}
 @media (max-height:480px){.usSign{width:46px;top:4px}.usSign b{font-size:9px}.usSign i{font-size:25px}.usSign small{display:none}#drvTop.hasSpd{padding-right:64px;min-height:64px;box-sizing:border-box}}
 </style>
 </head>
@@ -3784,6 +3787,8 @@ function drvEval(){
   clBtnsUpdate(tgt);
   drvSpdUpdate();
   if(document.body.classList.contains('clmode')&&!DRV.cur&&!DRV.addBusy&&Date.now()-(DRV.autoT||0)>15000){DRV.autoT=Date.now();drvAddRoad(true);}   /* classification mode: pick up the road under the GPS dot by itself */
+  /* nothing special around: no info box at all (only the speed sign and the map credit remain) */
+  $('#drvTop').classList.toggle('idle',now==='No classified stretch here'&&/^Nothing US-feeling/.test(ahead)&&!tgt&&$('#drvRt').hidden);
   $('#drvNow').textContent=now;$('#drvAhead').textContent=ahead+(tgt&&!DRV.cur?' · (rating applies to the stretch you just left)':'');
 }
 function drvOnPos(pos){
