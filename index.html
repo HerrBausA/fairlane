@@ -3216,7 +3216,7 @@ let _mine=null;
 function exMine(){if(_mine)return _mine;const m={},a=rLoad();for(const k in a){const x=a[k];if(x.mine&&(x.r==='us'||x.r==='both'))m[k]=x.mine;}return _mine=m;}
 const exTier=l=>exMine()[rKey(l)]||l.tier||'bronze';
 const TIER_EM={gold:'🥇',silver:'🥈',bronze:'🥉'};
-const rMk=(l,r,old)=>{const x={r,t:new Date().toISOString().slice(0,16),f:l.f||{},tier:l.tier||'',pts:rSample(l)};if(old&&old.mine&&(r==='us'||r==='both'))x.mine=old.mine;return x;};
+const rMk=(l,r,old)=>{const x={r,t:new Date().toISOString().slice(0,16),car:car.name,f:l.f||{},tier:l.tier||'',pts:rSample(l)};if(old&&old.mine&&(r==='us'||r==='both'))x.mine=old.mine;return x;};
 function exRedrawRates(){try{EX.tiles.forEach(t=>exDropG(t));EX.ver++;exSyncSoon();}catch(e){}}
 function exSetRate(l,r){
   const all=rLoad(),k=rKey(l),old=all[k];_mine=null;
@@ -3241,7 +3241,7 @@ function exRateUi(){
 }
 function exExport(){
   const v=Object.values(rLoad());
-  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, sc:y|n, av:y|n, algo:{us:tier or empty,sc:true|false,av:true|false} = what the algorithm said at that spot, t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from it (us / fun / both / no / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
+  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, sc:y|n, av:y|n, algo:{us:tier or empty,sc:true|false,av:true|false,car:car profile} = what the algorithm said at that spot for that car, car:car profile selected when answering (your own answers are car-independent judgements and can be merged across cars; the algorithm snapshot is car-specific), t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from it (us / fun / both / no / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
     meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},mine:'optional per rating: the tier (bronze/silver/gold) the user chose by personal feeling for a US-feeling stretch; tier = what the algorithm said',missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
     settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed inside the stretch (50 = town), f.m50 / f.m70 = share of the stretch in 50 / 70 km/h zones',model:Object.assign({id:"28 Oct: length + straightness dominate"},US_P),car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
     ratings:v};
@@ -4051,8 +4051,8 @@ function clSet(l,patch,algo){
   const st=clState(l),cl=Object.assign({us:st.us==='algo'?undefined:st.us,sc:st.sc,av:st.av},x.cl||{});
   if(x.cl===undefined){cl.us=st.us==='algo'?undefined:st.us;cl.sc=st.sc;cl.av=st.av;}
   Object.keys(patch).forEach(key=>{cl[key]=(cl[key]===patch[key])?'':patch[key];});
-  if(!x.cl&&algo)cl.algo=algo;else if(x.cl&&x.cl.algo)cl.algo=x.cl.algo;else if(algo)cl.algo=algo;
-  cl.t=new Date().toISOString().slice(0,16);cl.src=(DRV&&DRV.on)?'drive':'map';
+  if(x.cl&&x.cl.algo)cl.algo=x.cl.algo;else if(algo)cl.algo=Object.assign({},algo,{car:car.name});   /* the algorithm's opinion belongs to the car selected at that moment */
+  cl.t=new Date().toISOString().slice(0,16);cl.car=car.name;cl.src=(DRV&&DRV.on)?'drive':'map';
   x.cl=cl;
   const usYes=CL_T.includes(cl.us)||(cl.us===undefined&&(x.r==='us'||x.r==='both')),sc=cl.sc==='y';
   x.r=usYes?(sc?'both':'us'):sc?'fun':(cl.us==='no'&&cl.sc==='n'?'no':'');   /* 'not good' (hidden from the layers) only when it is neither US-feeling nor scenic */
