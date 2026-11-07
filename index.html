@@ -823,7 +823,7 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
     <div class="exside" id="clSide">
       <h2>Classification mode</h2>
       <button class="btn red drvToggle" id="clDrive" type="button" style="width:100%;margin:2px 0 8px;font-size:15px;padding:11px 14px">🚗 Start drive mode</button>
-      <div class="hint">Drive (as passenger, or parked) and describe the road you are on – the buttons appear as soon as there is a road to describe. For every stretch you give four answers: <b>US-feeling</b> (🥉 bronze · 🥈 silver · 🥇 gold, or ✕ not US-feeling), <b>Scenic</b> yes / no, and <b>Avenue</b> (trees on both sides) yes / no. Tap an answer again to take it back. Roads the map does not know yet are picked up from your GPS position automatically.</div>
+      <div class="hint">Drive (as passenger, or parked) and describe the road you are on – the buttons appear as soon as there is a road to describe. For every stretch you give five answers: <b>US-feeling</b> (🥉 bronze · 🥈 silver · 🥇 gold, or ✕ not US-feeling), <b>Fun to drive</b> yes / no, <b>Scenic</b> yes / no and <b>Avenue</b> (trees on both sides) yes / no. Tap an answer again to take it back. The train horn sounds once when you enter a US-feeling stretch you have not classified yet. Roads the map does not know yet are picked up from your GPS position automatically.</div>
       <div class="hint keep" id="clInfo"></div>
       <div class="pgrp">Your classifications</div>
       <div class="chips"><button class="btn sm" id="clExport">⬇ Export</button><button class="btn sm" id="clCopy">⧉ Copy</button><button class="btn sm" id="clClear">🗑 Clear</button></div>
@@ -847,6 +847,7 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
         <div id="drvZ"><button type="button" id="drvZi" aria-label="Zoom in">＋</button><button type="button" id="drvZo" aria-label="Zoom out">－</button></div>
         <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div>
           <div class="clrow"><span>US-feeling</span><button type="button" data-cl="us:bronze">🥉</button><button type="button" data-cl="us:silver">🥈</button><button type="button" data-cl="us:gold">🥇</button><button type="button" data-cl="us:no">✕</button></div>
+          <div class="clrow"><span>Fun to drive</span><button type="button" data-cl="fun:y">🏁 Yes</button><button type="button" data-cl="fun:n">✕ No</button></div>
           <div class="clrow"><span>Scenic</span><button type="button" data-cl="sc:y">✓ Yes</button><button type="button" data-cl="sc:n">✕ No</button></div>
           <div class="clrow"><span>Avenue (trees both sides)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div></div>
         <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvMoreBtn" aria-expanded="false">⋯ More</button><button type="button" id="drvBeep" class="drvMore">🚂 Horn on</button><button type="button" id="drvRoute" class="drvMore">🧭 Planned route</button><button type="button" id="drvFollow" class="drvMore">⌖ Follow</button><button type="button" id="drvHu" class="drvMore">🧭 Heading up</button><button type="button" id="drvFull" class="drvMore">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
@@ -3241,7 +3242,7 @@ function exRateUi(){
 }
 function exExport(){
   const v=Object.values(rLoad());
-  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, sc:y|n, av:y|n, algo:{us:tier or empty,sc:true|false,av:true|false,car:car profile} = what the algorithm said at that spot for that car, car:car profile selected when answering (your own answers are car-independent judgements and can be merged across cars; the algorithm snapshot is car-specific), t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from it (us / fun / both / no / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
+  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, fun:y|n (fun to drive), sc:y|n (scenic), av:y|n, algo:{us:tier or empty,sc:true|false,av:true|false,car:car profile} = what the algorithm said at that spot for that car, car:car profile selected when answering (your own answers are car-independent judgements and can be merged across cars; the algorithm snapshot is car-specific), t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from us + fun (us / fun / both / no = neither / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
     meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},mine:'optional per rating: the tier (bronze/silver/gold) the user chose by personal feeling for a US-feeling stretch; tier = what the algorithm said',missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
     settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed inside the stretch (50 = town), f.m50 / f.m70 = share of the stretch in 50 / 70 km/h zones',model:Object.assign({id:"28 Oct: length + straightness dominate"},US_P),car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
     ratings:v};
@@ -3743,7 +3744,7 @@ function drvAlert(l){
   if(!DRV.beepOn||!l||!l.tier)return;                 /* only US-feeling stretches (not plain scenic roads) */
   const k=rKey(l);DRV.alerted=DRV.alerted||new Set();
   if(DRV.alerted.has(k))return;DRV.alerted.add(k);     /* once per stretch, for the whole drive */
-  if((rLoad()[k]||{}).r)return;                        /* already rated by you: nothing to wake up for */
+  const rx=rLoad()[k]||{};if(document.body.classList.contains('clmode')?rx.cl:rx.r)return;   /* already rated by you: nothing to wake up for (classification mode asks more, so only its own answers count) */
   drvBeep();
 }
 function drvBeepBtn(){const b=$('#drvBeep');if(b){b.textContent=DRV.beepOn?'🚂 Horn on':'🔕 Horn off';b.classList.toggle('on',!!DRV.beepOn);}}
@@ -4042,28 +4043,28 @@ const CL_T=['bronze','silver','gold'];
 function clState(l){
   const x=rLoad()[rKey(l)]||{},cl=x.cl||{},r=x.r||'';
   const us=cl.us!==undefined?cl.us:(r==='us'||r==='both')?(x.mine||'algo'):r==='no'?'no':'';
-  const sc=cl.sc!==undefined?cl.sc:(r==='fun'||r==='both')?'y':r==='no'?'n':'';
-  return {us,sc,av:cl.av||''};
+  const fun=cl.fun!==undefined?cl.fun:x.cl?'':(r==='fun'||r==='both')?'y':r==='no'?'n':'';
+  return {us,fun,sc:cl.sc||'',av:cl.av||''};
 }
 function clSet(l,patch,algo){
   const all=rLoad(),k=rKey(l);let x=all[k];_mine=null;
   if(!x){x=all[k]=rMk(l,'',null);}
-  const st=clState(l),cl=Object.assign({us:st.us==='algo'?undefined:st.us,sc:st.sc,av:st.av},x.cl||{});
-  if(x.cl===undefined){cl.us=st.us==='algo'?undefined:st.us;cl.sc=st.sc;cl.av=st.av;}
+  const st=clState(l),legacy=!x.cl,cl=Object.assign({},x.cl||{});
+  if(legacy){cl.us=st.us==='algo'?undefined:st.us;cl.fun=st.fun;cl.sc='';cl.av='';}   /* an older rating without classification answers: take over what it already says */
   Object.keys(patch).forEach(key=>{cl[key]=(cl[key]===patch[key])?'':patch[key];});
   if(x.cl&&x.cl.algo)cl.algo=x.cl.algo;else if(algo)cl.algo=Object.assign({},algo,{car:car.name});   /* the algorithm's opinion belongs to the car selected at that moment */
   cl.t=new Date().toISOString().slice(0,16);cl.car=car.name;cl.src=(DRV&&DRV.on)?'drive':'map';
   x.cl=cl;
-  const usYes=CL_T.includes(cl.us)||(cl.us===undefined&&(x.r==='us'||x.r==='both')),sc=cl.sc==='y';
-  x.r=usYes?(sc?'both':'us'):sc?'fun':(cl.us==='no'&&cl.sc==='n'?'no':'');   /* 'not good' (hidden from the layers) only when it is neither US-feeling nor scenic */
+  const usYes=CL_T.includes(cl.us)||(cl.us===undefined&&(x.r==='us'||x.r==='both')),fun=cl.fun==='y';
+  x.r=usYes?(fun?'both':'us'):fun?'fun':(cl.us==='no'&&cl.fun==='n'?'no':'');   /* 'not good' (hidden from the layers) only when it is neither US-feeling nor scenic */
   if(CL_T.includes(cl.us))x.mine=cl.us;else if(cl.us!==undefined)delete x.mine;
-  if(!x.r&&!cl.av&&!cl.sc&&!cl.us)delete all[k];
+  if(!x.r&&!cl.av&&!cl.sc&&!cl.us&&!cl.fun)delete all[k];
   store.set('flrp_ratings',all);_mine=null;exRateUi();exRedrawRates();
 }
 function clSummary(l){
-  const s=clState(l);if(!s.us&&!s.sc&&!s.av)return '';
+  const s=clState(l);if(!s.us&&!s.fun&&!s.sc&&!s.av)return '';
   const u=CL_T.includes(s.us)?TIER_EM[s.us]+' '+TIERN[s.us]:s.us==='no'?'not US-feeling':s.us==='algo'?'US-feeling':'';
-  return '✎ you: '+[u,s.sc==='y'?'scenic ✓':s.sc==='n'?'scenic ✗':'',s.av==='y'?'avenue ✓':s.av==='n'?'avenue ✗':''].filter(Boolean).join(' · ');
+  return '✎ you: '+[u,s.fun==='y'?'fun ✓':s.fun==='n'?'fun ✗':'',s.sc==='y'?'scenic ✓':s.sc==='n'?'scenic ✗':'',s.av==='y'?'avenue ✓':s.av==='n'?'avenue ✗':''].filter(Boolean).join(' · ');
 }
 function clBtnsUpdate(tgt){
   const bx=$('#drvBtns');if(!bx)return;
@@ -4073,7 +4074,7 @@ function clBtnsUpdate(tgt){
   if(was!==none&&window.DRV&&drvHuOn()){try{drvHuLayout();}catch(e){}}
 }
 const clPopup=l=>{const st=clState(l),row=(lab,k,opts)=>`<p style="margin:6px 0 0"><b>${lab}</b></p><div class="ratebtns">${opts.map(([v,t])=>`<button class="btn sm tierb ${st[k]===v?'red':''}" data-cl="${k}:${v}">${t}</button>`).join('')}</div>`;
-  return row('US-feeling','us',[['bronze','🥉'],['silver','🥈'],['gold','🥇'],['no','✕']])+row('Scenic','sc',[['y','✓ Yes'],['n','✕ No']])+row('Avenue (trees both sides)','av',[['y','🌳 Yes'],['n','✕ No']]);};
+  return row('US-feeling','us',[['bronze','🥉'],['silver','🥈'],['gold','🥇'],['no','✕']])+row('Fun to drive','fun',[['y','🏁 Yes'],['n','✕ No']])+row('Scenic','sc',[['y','✓ Yes'],['n','✕ No']])+row('Avenue (trees both sides)','av',[['y','🌳 Yes'],['n','✕ No']]);};
 document.addEventListener('click',e=>{
   const b=e.target.closest&&e.target.closest('[data-cl]');if(!b)return;
   const inDrv=!!b.closest('#drvBtns'),l=inDrv?(DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null)):EX.ratingFor;if(!l)return;
@@ -4083,9 +4084,9 @@ document.addEventListener('click',e=>{
   if(inDrv){drvEval();toast(clSummary(l)||'Answer removed',1800);}else{try{EX.map.closePopup();}catch(x){}if(EX.layMark)EX.layMark.clearLayers();clUi();}
 });
 function clUi(){
-  const v=Object.values(rLoad()),c={us:0,gold:0,silver:0,bronze:0,no:0,scY:0,scN:0,avY:0,avN:0};
-  v.forEach(x=>{const cl=x.cl;if(!cl)return;if(cl.us==='no')c.no++;else if(CL_T.includes(cl.us)){c.us++;c[cl.us]++;}if(cl.sc==='y')c.scY++;if(cl.sc==='n')c.scN++;if(cl.av==='y')c.avY++;if(cl.av==='n')c.avN++;});
-  const el=$('#clInfo');if(el)el.textContent=v.length?`${v.length} stretches rated in total. Classified here: ★ ${c.us} US-feeling (🥇 ${c.gold} · 🥈 ${c.silver} · 🥉 ${c.bronze}) · ✕ ${c.no} not US-feeling · scenic ${c.scY} yes / ${c.scN} no · avenue ${c.avY} yes / ${c.avN} no`:'Nothing classified yet.';
+  const v=Object.values(rLoad()),c={us:0,gold:0,silver:0,bronze:0,no:0,scY:0,scN:0,avY:0,avN:0,fY:0,fN:0};
+  v.forEach(x=>{const cl=x.cl;if(!cl)return;if(cl.us==='no')c.no++;else if(CL_T.includes(cl.us)){c.us++;c[cl.us]++;}if(cl.fun==='y')c.fY++;if(cl.fun==='n')c.fN++;if(cl.sc==='y')c.scY++;if(cl.sc==='n')c.scN++;if(cl.av==='y')c.avY++;if(cl.av==='n')c.avN++;});
+  const el=$('#clInfo');if(el)el.textContent=v.length?`${v.length} stretches rated in total. Classified here: ★ ${c.us} US-feeling (🥇 ${c.gold} · 🥈 ${c.silver} · 🥉 ${c.bronze}) · ✕ ${c.no} not US-feeling · fun ${c.fY} yes / ${c.fN} no · scenic ${c.scY} yes / ${c.scN} no · avenue ${c.avY} yes / ${c.avN} no`:'Nothing classified yet.';
 }
 $('#clExport').onclick=()=>$('#exRateExport').click();$('#clCopy').onclick=()=>$('#exRateCopy').click();$('#clClear').onclick=()=>{$('#exRateClear').click();clUi();};
 $('#clToExplore').onclick=()=>$$('.tab').find(t=>t.dataset.tab==='explore').click();
