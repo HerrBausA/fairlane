@@ -595,8 +595,12 @@ html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 body.clmode #drvBtns>[data-drate],body.clmode #drvBtns>.drvTier{display:none}
 body.clmode #drvBtns .clrow{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 100%}
 .clrow>span{flex:1 1 100%;font:400 11px/1.1 'Special Elite',monospace;color:#2c2519;background:rgba(255,253,245,.85);padding:1px 4px;align-self:flex-start;width:max-content;max-width:100%;flex:none}
-#drvBtns .clrow button{flex:1 1 0;min-width:0;min-height:44px;font-size:16px;padding:0 2px}
-@media (max-height:480px){#drvBtns .clrow button{min-height:34px;font-size:14px}.clrow>span{flex:0 0 100%;width:auto}#drvBtns .clrow{gap:3px}}
+#drvBtns .clrow button{flex:1 1 0;min-width:0;min-height:40px;font-size:16px;padding:0 2px}
+#drvBtns .clrow button[data-cl^="fe:"]{border-color:var(--c);color:var(--c);font-weight:700;font-size:14px}
+#drvBtns .clrow button[data-cl="fe:ok"],.fe3 [data-cl="fe:ok"]{--c:#2f9e44}#drvBtns .clrow button[data-cl="fe:warn"],.fe3 [data-cl="fe:warn"]{--c:#f08c00}#drvBtns .clrow button[data-cl="fe:bad"],.fe3 [data-cl="fe:bad"]{--c:#c92a2a}
+#drvBtns .clrow button[data-cl^="fe:"].on{background:var(--c);color:#fff}
+@media (max-height:480px){#drvBtns .clrow button{min-height:27px;font-size:13px}#drvBtns .clrow button[data-cl^="fe:"]{font-size:11px}.clrow>span{flex:0 0 100%;width:auto;font-size:10px;line-height:1.05}#drvBtns .clrow{gap:2px}}
+.fe3 .btn{border-color:var(--c);color:var(--c);font-weight:700}.fe3 .btn.red{background:var(--c);color:#fff}
 body:not(.clmode) #clSide{display:none}body.clmode #exSide{display:none}
 body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-template-columns:1fr}body[data-mtab="cl"] .gauges{visibility:hidden}
 /* US speed-limit sign (MUTCD R2-1 look): white plate, black inset border, black lettering */
@@ -849,7 +853,8 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
           <div class="clrow"><span>US-feeling</span><button type="button" data-cl="us:bronze">🥉</button><button type="button" data-cl="us:silver">🥈</button><button type="button" data-cl="us:gold">🥇</button><button type="button" data-cl="us:no">✕</button></div>
           <div class="clrow"><span>Fun to drive</span><button type="button" data-cl="fun:y">🏁 Yes</button><button type="button" data-cl="fun:n">✕ No</button></div>
           <div class="clrow"><span>Scenic</span><button type="button" data-cl="sc:y">✓ Yes</button><button type="button" data-cl="sc:n">✕ No</button></div>
-          <div class="clrow"><span>Avenue (trees both sides)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div></div>
+          <div class="clrow"><span>Avenue (tree-lined)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div>
+          <div class="clrow"><span>Suits the Fairlane?</span><button type="button" data-cl="fe:ok">✓ OK</button><button type="button" data-cl="fe:warn">⚠ Tricky</button><button type="button" data-cl="fe:bad">✕ No</button></div></div>
         <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvMoreBtn" aria-expanded="false">⋯ More</button><button type="button" id="drvBeep" class="drvMore">🚂 Horn on</button><button type="button" id="drvRoute" class="drvMore">🧭 Planned route</button><button type="button" id="drvFollow" class="drvMore">⌖ Follow</button><button type="button" id="drvHu" class="drvMore">🧭 Heading up</button><button type="button" id="drvFull" class="drvMore">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
@@ -3242,7 +3247,7 @@ function exRateUi(){
 }
 function exExport(){
   const v=Object.values(rLoad());
-  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, fun:y|n (fun to drive), sc:y|n (scenic), av:y|n, algo:{us:tier or empty,sc:true|false,av:true|false,car:car profile} = what the algorithm said at that spot for that car, car:car profile selected when answering (your own answers are car-independent judgements and can be merged across cars; the algorithm snapshot is car-specific), t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from us + fun (us / fun / both / no = neither / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
+  return {app:'Fairlane Rallye Planner',kind:'us-feeling-ratings',version:4,exported:new Date().toISOString(),classification:{what:'Classification mode / drive: per rating the optional object cl = {us:bronze|silver|gold|no, fun:y|n (fun to drive), sc:y|n (scenic), av:y|n, fe:ok|warn|bad (your verdict whether the road suits the 1958 Ford Fairlane: green / orange / red like the Fairlane layer in Explore; algo.fe is the same verdict of the algorithm for the selected car), algo:{us:tier or empty,sc:true|false,av:true|false,car:car profile} = what the algorithm said at that spot for that car, car:car profile selected when answering (your own answers are car-independent judgements and can be merged across cars; the algorithm snapshot is car-specific), t:time, src:drive|map}. av = avenue (trees on both sides), sc = scenic. r is derived from us + fun (us / fun / both / no = neither / empty) so older evaluations keep working. An empty string means the answer was taken back.'},
     meaning:{us:'feels like an open American road (US-feeling)',fun:'nice / fun to drive, not necessarily US-feeling',both:'US-feeling and fun to drive',no:'not good – neither US-feeling nor fun'},mine:'optional per rating: the tier (bronze/silver/gold) the user chose by personal feeling for a US-feeling stretch; tier = what the algorithm said',missedRoads:'ratings with f.missed=true were picked by tapping a road; if f.detected is false the algorithm had NOT highlighted it and f.skipped lists why',
     settings:{sightMinM:700,minStretchKm:.7,headingTolDeg:22,tierCut:{gold:.66,silver:SILVER_Q,silverMinSightM:SILVER_SIGHT},viewDistance:'f.sight = straight-road sight line, f.view = sight line cut by tree rows/hedges/noise walls/forest edge/houses beside the road (f.vo = open share of the roadside, f.tree, f.wall); f.traffic = 0..1 guess from road class and distance to a town',topographyWeight:'exposure ±'+TOPO_W+', hills above 15 m/km cost up to '+HILL_W+' (flat or rolling is fine, mountains are not); f.topo and f.q per stretch; f.open/forest/built = land next to the road, f.poles/minor/rail = utility poles, pole lines and railway alongside, f.curv = degrees per km, f.maxs = lowest maxspeed inside the stretch (50 = town), f.m50 / f.m70 = share of the stretch in 50 / 70 km/h zones',model:Object.assign({id:"28 Oct: length + straightness dominate"},US_P),car:{name:car.name,curvLo:car.curvLo,curvHi:car.curvHi}},
     ratings:v};
@@ -3682,7 +3687,7 @@ const DRV={pin:null,pinT:0,on:false,watch:null,mk:null,ll:null,hist:[],head:null
 window.DRV=DRV;
 const drvKm=m=>m>=1000?(m/1000).toFixed(m>=10000?0:1)+' km':Math.round(m/10)*10+' m';
 function drvIcon(h){return L.divIcon({className:'',html:'<div class="drvpulse">'+(h==null?'<div class="drvdot"></div>':`<div class="drvcar" style="transform:rotate(${Math.round(h)}deg)">▲</div>`)+'</div>',iconSize:[34,34],iconAnchor:[17,17]});}
-function drvLines(){const k=exCarKey(),us=[],sc=[],av=[];(EX.vis||[]).forEach(t=>{const o=t.chains&&t.res&&t.res[k];if(!o)return;o.us.forEach(l=>us.push({c:{pts:l},t,l}));o.sc.forEach(l=>sc.push({c:{pts:l},t,l}));(o.av||[]).forEach(l=>av.push({c:{pts:l},t,l}));});return {us,sc,av};}
+function drvLines(){const k=exCarKey(),us=[],sc=[],av=[],fe=[];(EX.vis||[]).forEach(t=>{const o=t.chains&&t.res&&t.res[k];if(!o)return;o.us.forEach(l=>us.push({c:{pts:l},t,l}));o.sc.forEach(l=>sc.push({c:{pts:l},t,l}));(o.av||[]).forEach(l=>av.push({c:{pts:l},t,l}));if(o.fe)['ok','warn','bad'].forEach(z=>(o.fe[z]||[]).forEach(l=>fe.push({c:{pts:l},t,l,z})));});return {us,sc,av,fe};}
 function drvHeading(){
   const h=DRV.hist;if(h.length<2)return DRV.head;
   const a=h[0],b=h[h.length-1];if(hav(a,b)<14)return DRV.head;return brg(a,b);
@@ -3751,9 +3756,9 @@ function drvBeepBtn(){const b=$('#drvBeep');if(b){b.textContent=DRV.beepOn?'🚂
 $('#drvBeep').onclick=()=>{DRV.beepOn=!DRV.beepOn;try{localStorage.setItem('flrp_drvbeep',DRV.beepOn?'1':'0');}catch(e){}drvBeepBtn();if(DRV.beepOn)drvBeep();};
 function drvEval(){
   if(!DRV.ll)return;
-  const {us,sc,av}=drvLines(),head=drvHeading(),p=DRV.ll;
+  const {us,sc,av,fe}=drvLines(),head=drvHeading(),p=DRV.ll;
   const near=exNearest(p,us),nearSc=exNearest(p,sc),nearAv=exNearest(p,av);
-  DRV.algo={us:near&&near.d<40?((near.c.pts.tier)||'bronze'):'',sc:!!(nearSc&&nearSc.d<40),av:!!(nearAv&&nearAv.d<40)};   /* what the algorithm says right here – saved with every classification */
+  DRV.algo={us:near&&near.d<40?((near.c.pts.tier)||'bronze'):'',sc:!!(nearSc&&nearSc.d<40),av:!!(nearAv&&nearAv.d<40),fe:(()=>{const n=exNearest(p,fe);return n&&n.d<35?fe.find(q=>q.c.pts===n.c.pts).z:'';})()};   /* what the algorithm says right here – saved with every classification */
   const loaded=(EX.vis||[]).some(t=>t.chains&&t.res&&t.res[exCarKey()]);
   let now='',ahead='';
   if(near&&near.d<40){
@@ -4044,7 +4049,7 @@ function clState(l){
   const x=rLoad()[rKey(l)]||{},cl=x.cl||{},r=x.r||'';
   const us=cl.us!==undefined?cl.us:(r==='us'||r==='both')?(x.mine||'algo'):r==='no'?'no':'';
   const fun=cl.fun!==undefined?cl.fun:x.cl?'':(r==='fun'||r==='both')?'y':r==='no'?'n':'';
-  return {us,fun,sc:cl.sc||'',av:cl.av||''};
+  return {us,fun,sc:cl.sc||'',av:cl.av||'',fe:cl.fe||''};
 }
 function clSet(l,patch,algo){
   const all=rLoad(),k=rKey(l);let x=all[k];_mine=null;
@@ -4058,13 +4063,13 @@ function clSet(l,patch,algo){
   const usYes=CL_T.includes(cl.us)||(cl.us===undefined&&(x.r==='us'||x.r==='both')),fun=cl.fun==='y';
   x.r=usYes?(fun?'both':'us'):fun?'fun':(cl.us==='no'&&cl.fun==='n'?'no':'');   /* 'not good' (hidden from the layers) only when it is neither US-feeling nor scenic */
   if(CL_T.includes(cl.us))x.mine=cl.us;else if(cl.us!==undefined)delete x.mine;
-  if(!x.r&&!cl.av&&!cl.sc&&!cl.us&&!cl.fun)delete all[k];
+  if(!x.r&&!cl.av&&!cl.sc&&!cl.us&&!cl.fun&&!cl.fe)delete all[k];
   store.set('flrp_ratings',all);_mine=null;exRateUi();exRedrawRates();
 }
 function clSummary(l){
-  const s=clState(l);if(!s.us&&!s.fun&&!s.sc&&!s.av)return '';
+  const s=clState(l);if(!s.us&&!s.fun&&!s.sc&&!s.av&&!s.fe)return '';
   const u=CL_T.includes(s.us)?TIER_EM[s.us]+' '+TIERN[s.us]:s.us==='no'?'not US-feeling':s.us==='algo'?'US-feeling':'';
-  return '✎ you: '+[u,s.fun==='y'?'fun ✓':s.fun==='n'?'fun ✗':'',s.sc==='y'?'scenic ✓':s.sc==='n'?'scenic ✗':'',s.av==='y'?'avenue ✓':s.av==='n'?'avenue ✗':''].filter(Boolean).join(' · ');
+  return '✎ you: '+[u,s.fun==='y'?'fun ✓':s.fun==='n'?'fun ✗':'',s.sc==='y'?'scenic ✓':s.sc==='n'?'scenic ✗':'',s.av==='y'?'avenue ✓':s.av==='n'?'avenue ✗':'',s.fe==='ok'?'Fairlane ✓':s.fe==='warn'?'Fairlane ⚠':s.fe==='bad'?'Fairlane ✗':''].filter(Boolean).join(' · ');
 }
 function clBtnsUpdate(tgt){
   const bx=$('#drvBtns');if(!bx)return;
@@ -4074,7 +4079,7 @@ function clBtnsUpdate(tgt){
   if(was!==none&&window.DRV&&drvHuOn()){try{drvHuLayout();}catch(e){}}
 }
 const clPopup=l=>{const st=clState(l),row=(lab,k,opts)=>`<p style="margin:6px 0 0"><b>${lab}</b></p><div class="ratebtns">${opts.map(([v,t])=>`<button class="btn sm tierb ${st[k]===v?'red':''}" data-cl="${k}:${v}">${t}</button>`).join('')}</div>`;
-  return row('US-feeling','us',[['bronze','🥉'],['silver','🥈'],['gold','🥇'],['no','✕']])+row('Fun to drive','fun',[['y','🏁 Yes'],['n','✕ No']])+row('Scenic','sc',[['y','✓ Yes'],['n','✕ No']])+row('Avenue (trees both sides)','av',[['y','🌳 Yes'],['n','✕ No']]);};
+  return row('US-feeling','us',[['bronze','🥉'],['silver','🥈'],['gold','🥇'],['no','✕']])+row('Fun to drive','fun',[['y','🏁 Yes'],['n','✕ No']])+row('Scenic','sc',[['y','✓ Yes'],['n','✕ No']])+row('Avenue (trees both sides)','av',[['y','🌳 Yes'],['n','✕ No']])+`<div class="fe3">${row('Suits the Fairlane?','fe',[['ok','✓ OK'],['warn','⚠ Tricky'],['bad','✕ No']])}</div>`;};
 document.addEventListener('click',e=>{
   const b=e.target.closest&&e.target.closest('[data-cl]');if(!b)return;
   const inDrv=!!b.closest('#drvBtns'),l=inDrv?(DRV.cur||(DRV.recent&&Date.now()-DRV.recentT<90000?DRV.recent:null)):EX.ratingFor;if(!l)return;
@@ -4084,9 +4089,9 @@ document.addEventListener('click',e=>{
   if(inDrv){drvEval();toast(clSummary(l)||'Answer removed',1800);}else{try{EX.map.closePopup();}catch(x){}if(EX.layMark)EX.layMark.clearLayers();clUi();}
 });
 function clUi(){
-  const v=Object.values(rLoad()),c={us:0,gold:0,silver:0,bronze:0,no:0,scY:0,scN:0,avY:0,avN:0,fY:0,fN:0};
-  v.forEach(x=>{const cl=x.cl;if(!cl)return;if(cl.us==='no')c.no++;else if(CL_T.includes(cl.us)){c.us++;c[cl.us]++;}if(cl.fun==='y')c.fY++;if(cl.fun==='n')c.fN++;if(cl.sc==='y')c.scY++;if(cl.sc==='n')c.scN++;if(cl.av==='y')c.avY++;if(cl.av==='n')c.avN++;});
-  const el=$('#clInfo');if(el)el.textContent=v.length?`${v.length} stretches rated in total. Classified here: ★ ${c.us} US-feeling (🥇 ${c.gold} · 🥈 ${c.silver} · 🥉 ${c.bronze}) · ✕ ${c.no} not US-feeling · fun ${c.fY} yes / ${c.fN} no · scenic ${c.scY} yes / ${c.scN} no · avenue ${c.avY} yes / ${c.avN} no`:'Nothing classified yet.';
+  const v=Object.values(rLoad()),c={us:0,gold:0,silver:0,bronze:0,no:0,scY:0,scN:0,avY:0,avN:0,fY:0,fN:0,feO:0,feW:0,feB:0};
+  v.forEach(x=>{const cl=x.cl;if(!cl)return;if(cl.us==='no')c.no++;else if(CL_T.includes(cl.us)){c.us++;c[cl.us]++;}if(cl.fe==='ok')c.feO++;if(cl.fe==='warn')c.feW++;if(cl.fe==='bad')c.feB++;if(cl.fun==='y')c.fY++;if(cl.fun==='n')c.fN++;if(cl.sc==='y')c.scY++;if(cl.sc==='n')c.scN++;if(cl.av==='y')c.avY++;if(cl.av==='n')c.avN++;});
+  const el=$('#clInfo');if(el)el.textContent=v.length?`${v.length} stretches rated in total. Classified here: ★ ${c.us} US-feeling (🥇 ${c.gold} · 🥈 ${c.silver} · 🥉 ${c.bronze}) · ✕ ${c.no} not US-feeling · fun ${c.fY} yes / ${c.fN} no · scenic ${c.scY} yes / ${c.scN} no · avenue ${c.avY} yes / ${c.avN} no · Fairlane 🟢 ${c.feO} 🟠 ${c.feW} 🔴 ${c.feB}`:'Nothing classified yet.';
 }
 $('#clExport').onclick=()=>$('#exRateExport').click();$('#clCopy').onclick=()=>$('#exRateCopy').click();$('#clClear').onclick=()=>{$('#exRateClear').click();clUi();};
 $('#clToExplore').onclick=()=>$$('.tab').find(t=>t.dataset.tab==='explore').click();
