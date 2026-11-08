@@ -616,6 +616,16 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
 #drvTop.idle #drvNow,#drvTop.idle #drvAhead,#drvTop.idle #drvGps{display:none}
 #drvTop.idle #drvAttr{display:inline-block;background:rgba(255,255,255,.75);padding:1px 5px;border-radius:3px;pointer-events:auto}
 @media (max-height:480px){.usSign{width:46px;top:4px}.usSign b{font-size:9px}.usSign i{font-size:25px}.usSign small{display:none}#drvTop.hasSpd{padding-right:64px;min-height:64px;box-sizing:border-box}}
+
+/* ---- landscape phones / small tablets: the rating buttons use the FULL height of the display, in one column on the right ---- */
+@media (orientation:landscape) and (max-height:600px){
+ #drvBtns{position:absolute;top:max(8px,env(safe-area-inset-top));bottom:max(8px,env(safe-area-inset-bottom));right:max(8px,env(safe-area-inset-right));margin:0;width:168px;gap:6px;align-self:stretch;height:auto}
+ #drvBtns>button{flex:1 1 0;min-height:0}
+ #drvBtns .drvTier{flex:1 1 0;min-height:0}#drvBtns .drvTier button{min-height:0;height:100%}
+ body.clmode #drvBtns .clrow{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));grid-template-rows:auto minmax(0,1fr);flex:1 1 0;min-height:0;gap:2px 4px}
+ .clrow>span{grid-column:1/-1}
+ #drvBtns .clrow button{min-height:0;height:100%}
+}
 </style>
 </head>
 <body>
@@ -850,11 +860,11 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
         <div id="drvTop"><div id="drvSpd" class="usSign" hidden title="Speed limit on this road (OpenStreetMap)"><b>SPEED</b><b>LIMIT</b><i id="drvSpdN">–</i><small>km/h</small></div><div id="drvRt" hidden></div><div id="drvNow">Waiting for GPS…</div><div id="drvAhead"></div><small id="drvGps"></small><small id="drvAttr">© OpenStreetMap contributors</small></div>
         <div id="drvZ"><button type="button" id="drvZi" aria-label="Zoom in">＋</button><button type="button" id="drvZo" aria-label="Zoom out">－</button></div>
         <div id="drvBtns"><button type="button" data-drate="us">★ US-feeling</button><button type="button" data-drate="fun">🏁 Fun</button><button type="button" data-drate="no">👎 Not good</button><div class="drvTier" title="Your tier for this US-feeling stretch"><button type="button" data-dmine="bronze">🥉</button><button type="button" data-dmine="silver">🥈</button><button type="button" data-dmine="gold">🥇</button></div>
-          <div class="clrow"><span>US-feeling</span><button type="button" data-cl="us:bronze">🥉</button><button type="button" data-cl="us:silver">🥈</button><button type="button" data-cl="us:gold">🥇</button><button type="button" data-cl="us:no">✕</button></div>
-          <div class="clrow"><span>Fun to drive</span><button type="button" data-cl="fun:y">🏁 Yes</button><button type="button" data-cl="fun:n">✕ No</button></div>
-          <div class="clrow"><span>Scenic</span><button type="button" data-cl="sc:y">✓ Yes</button><button type="button" data-cl="sc:n">✕ No</button></div>
-          <div class="clrow"><span>Avenue (tree-lined)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div>
-          <div class="clrow"><span>Suits the Fairlane?</span><button type="button" data-cl="fe:ok">✓ OK</button><button type="button" data-cl="fe:warn">⚠ Tricky</button><button type="button" data-cl="fe:bad">✕ No</button></div></div>
+          <div class="clrow" style="--n:4"><span>US-feeling</span><button type="button" data-cl="us:bronze">🥉</button><button type="button" data-cl="us:silver">🥈</button><button type="button" data-cl="us:gold">🥇</button><button type="button" data-cl="us:no">✕</button></div>
+          <div class="clrow" style="--n:2"><span>Fun to drive</span><button type="button" data-cl="fun:y">🏁 Yes</button><button type="button" data-cl="fun:n">✕ No</button></div>
+          <div class="clrow" style="--n:2"><span>Scenic</span><button type="button" data-cl="sc:y">✓ Yes</button><button type="button" data-cl="sc:n">✕ No</button></div>
+          <div class="clrow" style="--n:2"><span>Avenue (tree-lined)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div>
+          <div class="clrow" style="--n:3"><span>Suits the Fairlane?</span><button type="button" data-cl="fe:ok">✓ OK</button><button type="button" data-cl="fe:warn">⚠ Tricky</button><button type="button" data-cl="fe:bad">✕ No</button></div></div>
         <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvMoreBtn" aria-expanded="false">⋯ More</button><button type="button" id="drvBeep" class="drvMore">🚂 Horn on</button><button type="button" id="drvRoute" class="drvMore">🧭 Planned route</button><button type="button" id="drvFollow" class="drvMore">⌖ Follow</button><button type="button" id="drvHu" class="drvMore">🧭 Heading up</button><button type="button" id="drvFull" class="drvMore">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
