@@ -865,7 +865,7 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
           <div class="clrow" style="--n:2"><span>Scenic</span><button type="button" data-cl="sc:y">✓ Yes</button><button type="button" data-cl="sc:n">✕ No</button></div>
           <div class="clrow" style="--n:2"><span>Avenue (tree-lined)</span><button type="button" data-cl="av:y">🌳 Yes</button><button type="button" data-cl="av:n">✕ No</button></div>
           <div class="clrow" style="--n:3"><span>Suits the Fairlane?</span><button type="button" data-cl="fe:ok">✓ OK</button><button type="button" data-cl="fe:warn">⚠ Tricky</button><button type="button" data-cl="fe:bad">✕ No</button></div></div>
-        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvMoreBtn" aria-expanded="false">⋯ More</button><button type="button" id="drvBeep" class="drvMore">🚂 Horn on</button><button type="button" id="drvRoute" class="drvMore">🧭 Planned route</button><button type="button" id="drvFollow" class="drvMore">⌖ Follow</button><button type="button" id="drvHu" class="drvMore">🧭 Heading up</button><button type="button" id="drvFull" class="drvMore">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
+        <div id="drvCtl"><button type="button" id="drvAdd">➕ Add this road</button><button type="button" id="drvMoreBtn" aria-expanded="false">⋯ More</button><button type="button" id="drvBeep" class="drvMore">🚂 Horn on</button><button type="button" id="drvRoute" class="drvMore">🧭 Planned route</button><button type="button" id="drvFollow" class="drvMore">⌖ Follow</button><button type="button" id="drvHu" class="drvMore">🧭 Heading up</button><button type="button" id="drvFull">⛶ Full screen</button><button type="button" id="drvStop">✕ End drive</button></div>
       </div>
       <div id="exDock"><button class="dockfold" type="button" aria-expanded="true">▾ Legend</button><div id="exKey" hidden></div></div>
     </div>
@@ -3739,8 +3739,7 @@ async function drvBeep(){
   try{
     drvAudioInit();const a=DRV.audio;if(!a)return;
     const info=await drvPickSpeaker();
-    if(!/^phone speaker/.test(info||'')&&!DRV.routeHint){DRV.routeHint=true;
-      toast('The browser cannot choose the phone speaker here – the horn follows the phone’s audio output. Android: switch off “Media audio” for the car in the Bluetooth settings. iPhone / iPad: Control Center → audio output → iPhone.',10000);}
+    /* no on-screen message about the audio route: the horn just plays (phone speaker where the browser allows choosing it) */
     const t0=a.currentTime+.03,hold=1.05,end=t0+.07+hold+.32;
     const master=a.createGain(),lp=a.createBiquadFilter?a.createBiquadFilter():null;
     master.gain.setValueAtTime(0,t0);master.gain.linearRampToValueAtTime(.95,t0+.07);master.gain.setValueAtTime(.95,t0+.07+hold);master.gain.exponentialRampToValueAtTime(.001,end);
