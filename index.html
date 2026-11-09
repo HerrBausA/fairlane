@@ -1304,13 +1304,17 @@ async function overpass(q,ms,budget){
 /*OVP-END*/
 /* ---- corridor geometry: how far is a place from the route, and where along it? ---- */
 function routeCum(r){if(r._cum)return r._cum;const c=[0];for(let i=1;i<r.pts.length;i++)c.push(c[i-1]+hav(r.pts[i-1],r.pts[i]));return r._cum=c;}
-function projRoute(ll,r){
+function projRoute(ll,r,hint){
   const pts=r.pts,cum=routeCum(r),k=Math.cos(rad(ll[0]));let best=1e18,bi=0,bt=0;
-  for(let i=0;i<pts.length-1;i++){
+  const win=(hint!=null&&pts.length>600)?[Math.max(0,hint-200),Math.min(pts.length-1,hint+500)]:null;   /* normally the car is just ahead of where it was: search that window first */
+  for(let pass=0;pass<2;pass++){
+  const i0=win&&pass===0?win[0]:0,i1=win&&pass===0?win[1]:pts.length-1;best=1e18;
+  for(let i=i0;i<i1;i++){
     const ax=(pts[i][1]-ll[1])*k,ay=pts[i][0]-ll[0],bx=(pts[i+1][1]-ll[1])*k,by=pts[i+1][0]-ll[0],dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy;
     let t=L2?-(ax*dx+ay*dy)/L2:0;t=t<0?0:t>1?1:t;const px=ax+t*dx,py=ay+t*dy,d=px*px+py*py;
     if(d<best){best=d;bi=i;bt=t;}
   }
+  if(!win||pass===1||Math.sqrt(best)*111195<150)break;}   /* off the window or far from it: scan the whole route */
   const a=pts[bi],b=pts[Math.min(bi+1,pts.length-1)];
   return {off:Math.sqrt(best)*111195,at:cum[bi]+bt*((cum[bi+1]||cum[bi])-cum[bi]),i:bi,ll:[a[0]+(b[0]-a[0])*bt,a[1]+(b[1]-a[1])*bt]};
 }
@@ -2487,7 +2491,7 @@ function exBaseFor(map,h){
   h.tileKey=tileKey;h.tileSet=true;
   if(tileKey==='none')return;
   const t=TILES[tileKey],me=tileKey;
-  h.tile=new SafeTiles(t.url,{subdomains:t.sub||'abc',maxZoom:t.maxZoom,attribution:t.attr,keepBuffer:3}).addTo(map);
+  h.tile=new SafeTiles(t.url,{subdomains:t.sub||'abc',maxZoom:t.maxZoom,attribution:t.attr,keepBuffer:LITEO.fadeAnimation===false?1:3}).addTo(map);
   h.tile.on('goodtile',()=>{tileGood++;});
   h.tile.on('badtile',()=>{tileBad++;if(tileBad>=10&&tileGood<=2&&me===tileKey)failover('Map source refused the request');});
   h.tile.on('poisoned',()=>{if(me===tileKey)failover('Map source answers with an error picture (e.g. "API key required")');});
@@ -3669,7 +3673,7 @@ function drvRouteShow(on){
 }
 function drvRouteEval(){
   if(!DR.on||!DR.r||!DRV.ll)return;
-  const r=DR.r,pr=projRoute(DRV.ll,r),cum=routeCum(r),tot=cum[cum.length-1]||1,box=$('#drvRt'),lang=($('#rbLang')&&$('#rbLang').value)||'en';
+  const r=DR.r,pr=projRoute(DRV.ll,r,DR.hint),cum=routeCum(r),tot=cum[cum.length-1]||1,box=$('#drvRt'),lang=($('#rbLang')&&$('#rbLang').value)||'en';
   if(DR.dev){try{EX.map.removeLayer(DR.dev);}catch(e){}DR.dev=null;}
   let html;
   if(pr.off>70){
@@ -3685,7 +3689,7 @@ function drvRouteEval(){
       html+=`<small>${(left/1000).toFixed(1)} km to go · arrival ~${String(eta.getHours()).padStart(2,'0')}:${String(eta.getMinutes()).padStart(2,'0')}</small>`;
     }
   }
-  if(box.innerHTML!==html)box.innerHTML=html;
+  DR.hint=pr.i;if(box.innerHTML!==html)box.innerHTML=html;
 }
 $('#drvRoute').onclick=()=>{if(!DR.on&&!S.cur){toast('Plan a route first (Plan tab), then it can be followed here.',4500);return;}drvRouteShow(!DR.on);};
 $('#btnDriveRt').onclick=()=>{
@@ -3697,7 +3701,23 @@ const DRV={pin:null,pinT:0,on:false,watch:null,mk:null,ll:null,hist:[],head:null
 window.DRV=DRV;
 const drvKm=m=>m>=1000?(m/1000).toFixed(m>=10000?0:1)+' km':Math.round(m/10)*10+' m';
 function drvIcon(h){return L.divIcon({className:'',html:'<div class="drvpulse">'+(h==null?'<div class="drvdot"></div>':`<div class="drvcar" style="transform:rotate(${Math.round(h)}deg)">▲</div>`)+'</div>',iconSize:[34,34],iconAnchor:[17,17]});}
-function drvLines(){const k=exCarKey(),us=[],sc=[],av=[],fe=[];(EX.vis||[]).forEach(t=>{const o=t.chains&&t.res&&t.res[k];if(!o)return;o.us.forEach(l=>us.push({c:{pts:l},t,l}));o.sc.forEach(l=>sc.push({c:{pts:l},t,l}));(o.av||[]).forEach(l=>av.push({c:{pts:l},t,l}));if(o.fe)['ok','warn','bad'].forEach(z=>(o.fe[z]||[]).forEach(l=>fe.push({c:{pts:l},t,l,z})));});return {us,sc,av,fe};}
+/* spatial index: the drive loop used to scan EVERY loaded line on every GPS fix (several times) – that kept the CPU busy and the phone hot.
+   Now every list is indexed once into ~200 m cells; a lookup touches only the few lines near the car. */
+function exGridBuild(items){
+  const K=500,g=new Map();
+  items.forEach(it=>{const q=it.c.pts;if(!q.length)return;let a=1e9,b=-1e9,c=1e9,d=-1e9;for(let i=0;i<q.length;i++){const la=q[i][0],lo=q[i][1];if(la<a)a=la;if(la>b)b=la;if(lo<c)c=lo;if(lo>d)d=lo;}
+    for(let i=Math.floor((a-.0008)*K);i<=Math.floor((b+.0008)*K);i++)for(let j=Math.floor((c-.0012)*K);j<=Math.floor((d+.0012)*K);j++){const k=i*100003+j;let arr=g.get(k);if(!arr){arr=[];g.set(k,arr);}arr.push(it);}});
+  return g;
+}
+const exGridAt=(g,p)=>g.get(Math.floor(p[0]*500)*100003+Math.floor(p[1]*500))||[];
+function drvLines(){
+  const k=exCarKey(),vis=EX.vis||[],sig=vis.map(t=>t.chains&&t.res&&t.res[k]).filter(Boolean),c=DRV._ln;
+  if(c&&c.k===k&&c.sig.length===sig.length&&c.sig.every((o,i)=>o===sig[i]))return c.v;
+  const us=[],sc=[],av=[],fe=[];
+  vis.forEach(t=>{const o=t.chains&&t.res&&t.res[k];if(!o)return;o.us.forEach(l=>us.push({c:{pts:l},t,l}));o.sc.forEach(l=>sc.push({c:{pts:l},t,l}));(o.av||[]).forEach(l=>av.push({c:{pts:l},t,l}));if(o.fe)['ok','warn','bad'].forEach(z=>(o.fe[z]||[]).forEach(l=>fe.push({c:{pts:l},t,l,z})));});
+  const v={us,sc,av,fe,gus:exGridBuild(us),gsc:exGridBuild(sc),gav:exGridBuild(av),gfe:exGridBuild(fe)};
+  DRV._ln={k,sig,v};return v;
+}
 function drvHeading(){
   const h=DRV.hist;if(h.length<2)return DRV.head;
   const a=h[0],b=h[h.length-1];if(hav(a,b)<14)return DRV.head;return brg(a,b);
@@ -3707,6 +3727,8 @@ function drvAlong(q,i,dir){let d=0;if(dir>0){for(let j=i+1;j<q.length-1;j++)d+=h
 function drvAhead(L_,exclude,head){
   let best=null;
   L_.forEach(({l})=>{if(l===exclude)return;
+    if(!l._bb){let a=1e9,b=-1e9,c=1e9,d=-1e9;for(const q of l){if(q[0]<a)a=q[0];if(q[0]>b)b=q[0];if(q[1]<c)c=q[1];if(q[1]>d)d=q[1];}l._bb=[a,b,c,d];}
+    const bb=l._bb;if(bb[0]>DRV.ll[0]+.06||bb[1]<DRV.ll[0]-.06||bb[2]>DRV.ll[1]+.09||bb[3]<DRV.ll[1]-.09)return;
     for(let i=0;i<l.length;i+=1){const p=l[i];if(Math.abs(p[0]-DRV.ll[0])>.06||Math.abs(p[1]-DRV.ll[1])>.09)continue;
       const d=hav(DRV.ll,p);if(d>6000||(best&&d>=best.d))continue;
       if(head!=null&&d>60){const dv=Math.abs(((brg(DRV.ll,p)-head+540)%360)-180);if(dv>65)continue;}
@@ -3737,7 +3759,7 @@ async function drvPickSpeaker(){
 const K5LA=[311.13,369.99,415.30,493.88,622.25];
 async function drvBeep(){
   try{
-    drvAudioInit();const a=DRV.audio;if(!a)return;
+    clearTimeout(DRV.audSleep);drvAudioInit();const a=DRV.audio;if(!a)return;
     const info=await drvPickSpeaker();
     /* no on-screen message about the audio route: the horn just plays (phone speaker where the browser allows choosing it) */
     const t0=a.currentTime+.03,hold=1.05,end=t0+.07+hold+.32;
@@ -3752,6 +3774,7 @@ async function drvBeep(){
         g.gain.value=vol;o.connect(g);g.connect(master);o.start(t0);o.stop(end+.05);});
     });
     if(navigator.vibrate)navigator.vibrate([250,100,250]);
+    if(!/iPhone|iPad|iPod/.test(navigator.userAgent||'')){DRV.audSleep=setTimeout(()=>{try{if(DRV.audio&&DRV.audio.state==='running')DRV.audio.suspend();}catch(e){}},4500);}   /* an idle audio engine keeps the phone's audio hardware (and the media notification) awake */
   }catch(e){}
 }
 function drvAlert(l){
@@ -3765,9 +3788,9 @@ function drvBeepBtn(){const b=$('#drvBeep');if(b){b.textContent=DRV.beepOn?'🚂
 $('#drvBeep').onclick=()=>{DRV.beepOn=!DRV.beepOn;try{localStorage.setItem('flrp_drvbeep',DRV.beepOn?'1':'0');}catch(e){}drvBeepBtn();if(DRV.beepOn)drvBeep();};
 function drvEval(){
   if(!DRV.ll)return;
-  const {us,sc,av,fe}=drvLines(),head=drvHeading(),p=DRV.ll;
-  const near=exNearest(p,us),nearSc=exNearest(p,sc),nearAv=exNearest(p,av);
-  DRV.algo={us:near&&near.d<40?((near.c.pts.tier)||'bronze'):'',sc:!!(nearSc&&nearSc.d<40),av:!!(nearAv&&nearAv.d<40),fe:(()=>{const n=exNearest(p,fe);return n&&n.d<35?fe.find(q=>q.c.pts===n.c.pts).z:'';})()};   /* what the algorithm says right here – saved with every classification */
+  const {us,sc,av,fe,gus,gsc,gav,gfe}=drvLines(),head=drvHeading(),p=DRV.ll;
+  const near=exNearest(p,exGridAt(gus,p)),nearSc=exNearest(p,exGridAt(gsc,p)),nearAv=exNearest(p,exGridAt(gav,p));
+  DRV.algo={us:near&&near.d<40?((near.c.pts.tier)||'bronze'):'',sc:!!(nearSc&&nearSc.d<40),av:!!(nearAv&&nearAv.d<40),fe:(()=>{const cand=exGridAt(gfe,p),n=exNearest(p,cand);return n&&n.d<35?(cand.find(q=>q.c.pts===n.c.pts)||{}).z||'':'';})()};   /* what the algorithm says right here – saved with every classification */
   const loaded=(EX.vis||[]).some(t=>t.chains&&t.res&&t.res[exCarKey()]);
   let now='',ahead='';
   if(near&&near.d<40){
@@ -3823,11 +3846,12 @@ function drvOnPos(pos){
   else{DRV.mk.setLatLng(ll);if(DRV.mk.setIcon&&(DRV.icH==null!==(DRV.head==null)||(DRV.head!=null&&Math.abs(((DRV.head-DRV.icH+540)%360)-180)>=12))){DRV.mk.setIcon(ic);DRV.icH=DRV.head;}}   /* rebuild the arrow only when it really turned – saves battery */
   if(L.circleMarker){if(!DRV.cm){DRV.cm=L.circleMarker(ll,{radius:10,color:'#fff',weight:4,fillColor:'#1b6fc4',fillOpacity:1,interactive:false}).addTo(EX.map);}else DRV.cm.setLatLng(ll);if(DRV.cm.bringToFront)DRV.cm.bringToFront();}
   if(L.circle){const rad=Math.min(Math.max(acc,5),2000),st={radius:rad,color:'#1b6fc4',weight:1,fillColor:'#1b6fc4',fillOpacity:.12,interactive:false};
-    if(!DRV.ac){DRV.ac=L.circle(ll,st).addTo(EX.map);}else{DRV.ac.setLatLng(ll);DRV.ac.setRadius(rad);}}
+    if(!DRV.ac){DRV.ac=L.circle(ll,st).addTo(EX.map);DRV.acR=rad;DRV.acP=ll;}else if(Math.abs(rad-DRV.acR)>Math.max(8,DRV.acR*.25)||hav(DRV.acP,ll)>Math.max(15,DRV.acR*.5)){DRV.ac.setLatLng(ll);DRV.ac.setRadius(rad);DRV.acR=rad;DRV.acP=ll;}}   /* the accuracy ring is redrawn only when it really changed – every redraw repaints the whole vector layer */
   $('#drvGps').style.color=acc<=25?'#1f7a3a':acc<=80?'#b26a00':'#c92a2a';
   $('#drvGps').textContent=`GPS ±${Math.round(acc)} m`+(c.speed!=null&&c.speed>=0?` · ${Math.round(c.speed*3.6)} km/h`:'')+(DRV.head!=null?` · heading ${Math.round(DRV.head)}°`:'');
   if(DRV.follow&&(!DRV.vll||hav(DRV.vll,ll)>12)){DRV.vll=ll;const z=EX.map.getZoom();drvCenter(ll,z<13?14:z,true);}   /* re-centre only after ~12 m: no constant redraw while standing */
-  if(!DRV.preBusy&&(!DRV.pre||hav(DRV.pre,ll)>180)){DRV.preBusy=true;const pc=ll.slice();exSmallRoads(pc,[[350,25000]]).then(()=>{DRV.pre=pc;},()=>{DRV.pre=pc;DRV.preFail=Date.now();}).finally(()=>{DRV.preBusy=false;});}
+  const spdMs=(c.speed!=null&&c.speed>0)?c.speed:0,preR=spdMs>15?700:spdMs>8?500:350;   /* faster = larger area, fewer requests: the radio stays idle longer */
+  if(!DRV.preBusy&&(!DRV.pre||hav(DRV.pre,ll)>preR*.5)){DRV.preBusy=true;const pc=ll.slice();exSmallRoads(pc,[[preR,25000]]).then(()=>{DRV.pre=pc;},()=>{DRV.pre=pc;DRV.preFail=Date.now();}).finally(()=>{DRV.preBusy=false;});}
   if(Date.now()-DRV.lastLoad>12000){DRV.lastLoad=Date.now();exSchedule();}
   if(DRV.ev&&hav(DRV.ev.ll,ll)<5&&tn-DRV.ev.t<3000)return;DRV.ev={ll,t:tn};
   drvEval();
@@ -3883,7 +3907,7 @@ function drvFollowSet(on){DRV.follow=on;drvHuLayout();$('#drvFollow').classList.
 async function drvStart(){
   if(DRV.on)return;
   if(!navigator.geolocation||gpsInsecure()){toast(gpsHelp('insecure'),9000);return;}
-  DRV.beepOn=drvBeepPref();DRV.alerted=new Set();drvAudioInit();drvBeepBtn();
+  DRV.beepOn=drvBeepPref();DRV.alerted=new Set();drvAudioInit();drvBeepBtn();if(!/iPhone|iPad|iPod/.test(navigator.userAgent||''))DRV.audSleep=setTimeout(()=>{try{if(DRV.audio&&DRV.audio.state==='running')DRV.audio.suspend();}catch(e){}},3000);   /* unlocked by this tap, then asleep until the first horn */
   exInit();exLocStop();DRV.on=true;DRV.hu=drvHuPref();HU.lay=false;HU.init=false;DRV.hist=[];DRV.head=null;DRV.cur=null;DRV.recent=null;DRV.pin=null;DRV.pre=null;DRV.preBusy=false;DRV.fixes=0;DRV.good=null;DRV.vll=null;DRV.ev=null;
   const us=$('#exShowUs');if(us&&!us.checked){us.checked=true;us.dispatchEvent(new Event('change'));}
   $('#exWrap').classList.add('driving');document.body.classList.add('drv');$('#exDrive').hidden=false;$('#drvNow').textContent='Waiting for GPS…';$('#drvAhead').textContent='';$('#drvGps').textContent='';
@@ -4108,17 +4132,22 @@ $('#clToExplore').onclick=()=>$$('.tab').find(t=>t.dataset.tab==='explore').clic
 /* ---- speed limit of the road under the GPS dot (OpenStreetMap maxspeed of the loaded roads) ---- */
 function drvSpeedLimit(p){
   if(!p)return null;
-  const items=[];
-  (EX.smallSets||[]).forEach(z=>{if(hav(p,z.c)<z.r+80)(z.chains||[]).forEach(c=>{if(c.spd&&c.spd.length===c.pts.length)items.push({c,t:null});});});
+  const hit=src=>{   /* src = a small-roads set or a map tile: its chains with speed values, indexed once */
+    if(!src||!src.chains)return null;
+    if(!src._sg||src._sgN!==src.chains.length){src._sgN=src.chains.length;src._sg=exGridBuild(src.chains.filter(c=>c.spd&&c.spd.length===c.pts.length).map(c=>({c,t:src})));}
+    return exNearest(p,exGridAt(src._sg,p));};
+  let n=null;
+  (EX.smallSets||[]).forEach(z=>{if(hav(p,z.c)<z.r+80){const h=hit(z);if(h&&(!n||h.d<n.d))n=h;}});
   const tk=EX.tiles&&EX.tiles.get(exTileKey(Math.floor(p[0]/TLAT),Math.floor(p[1]/TLON)));
-  if(tk&&tk.chains)tk.chains.forEach(c=>{if(c.spd&&c.spd.length===c.pts.length)items.push({c,t:tk});});
-  const n=exNearest(p,items);if(!n||n.d>28)return null;
+  if(tk){const h=hit(tk);if(h&&(!n||h.d<n.d))n=h;}
+  if(!n||n.d>28)return null;
   const v=n.c.spd[n.i]!=null?n.c.spd[n.i]:n.c.spd[n.i+1];
   return v!=null&&v>=5&&v<=130?Math.round(v/5)*5:null;
 }
 function drvSpdUpdate(){
   const el=$('#drvSpd');if(!el)return;
-  let v=null;try{v=drvSpeedLimit(DRV.ll);}catch(e){}
+  let v=null;const mv=!DRV.spdP||hav(DRV.spdP,DRV.ll)>12||Date.now()-DRV.spdLook>4000;   /* look the limit up only after ~12 m or 4 s */
+  if(mv){DRV.spdP=DRV.ll.slice();DRV.spdLook=Date.now();try{v=drvSpeedLimit(DRV.ll);}catch(e){}DRV.spdRes=v;}else v=DRV.spdRes;
   if(v!=null){DRV.spdV=v;DRV.spdT=Date.now();}else if(DRV.spdV!=null&&Date.now()-DRV.spdT<8000)v=DRV.spdV;   /* keep the last value for a few seconds across gaps */
   el.hidden=v==null;$('#drvTop').classList.toggle('hasSpd',v!=null);
   if(v!=null){$('#drvSpdN').textContent=v;el.classList.toggle('over',DRV.kmh!=null&&DRV.kmh>v+5);}
