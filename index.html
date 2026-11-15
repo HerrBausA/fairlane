@@ -4155,12 +4155,15 @@ function drvSpdUpdate(){
   if(v!=null)el.classList.toggle('over',DRV.kmh!=null&&DRV.kmh>v+5);
 }
 /* classification mode: tap the sign to switch km/h ⇄ mph (US signs show multiples of 5) */
-const spdMph=()=>{try{return document.body.classList.contains('clmode')&&localStorage.getItem('flrp_mph')==='1';}catch(e){return false;}};
+let MPH=null;   /* kept in memory first (storage can be blocked, e.g. private tabs); saved as a convenience */
+const spdMph=()=>{if(!document.body.classList.contains('clmode'))return false;if(MPH===null){try{MPH=localStorage.getItem('flrp_mph')==='1';}catch(e){MPH=false;}}return MPH;};
 function drvSpdPaint(){
   const v=DRV.spdShown;if(v==null)return;const m=spdMph();
   $('#drvSpdN').textContent=m?Math.round(v/1.609344/5)*5:v;$('#drvSpd').querySelector('small').textContent=m?'mph':'km/h';
 }
-$('#drvSpd').onclick=()=>{if(!document.body.classList.contains('clmode'))return;try{localStorage.setItem('flrp_mph',spdMph()?'0':'1');}catch(e){}drvSpdPaint();};
+{let lastT=0;const tog=e=>{if(!document.body.classList.contains('clmode'))return;e.stopPropagation();if(Date.now()-lastT<350)return;lastT=Date.now();   /* pointerup AND click both arrive on a tap: count once */
+  MPH=!spdMph();try{localStorage.setItem('flrp_mph',MPH?'1':'0');}catch(x){}drvSpdPaint();};
+  $('#drvSpd').addEventListener('pointerup',tog);$('#drvSpd').addEventListener('click',tog);}
 
 /* ---- Explore side panel: sections fold, explanations on demand ---- */
 (function(){
