@@ -607,6 +607,7 @@ body[data-mtab="cl"] .sidebar{display:none}body[data-mtab="cl"] .app{grid-templa
 #drvTop{position:relative}
 .usSign{position:absolute;right:8px;top:6px;width:58px;padding:4px 2px 3px;background:#fff;color:#000;text-align:center;border-radius:6px;box-shadow:0 0 0 2px #fff,0 0 0 3px #888,inset 0 0 0 2px #fff,inset 0 0 0 4px #000;font-family:'Oswald','Arial Narrow',sans-serif;line-height:1;z-index:2}
 .usSign[hidden]{display:none}
+body.clmode .usSign{pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
 .usSign b{display:block;font-weight:600;font-size:11px;letter-spacing:.02em}
 .usSign i{display:block;font-style:normal;font-weight:700;font-size:32px;line-height:1.02;margin-top:1px}
 .usSign small{display:block;font-size:8px;letter-spacing:.06em;margin-top:1px;color:#333}
@@ -4150,8 +4151,16 @@ function drvSpdUpdate(){
   if(mv){DRV.spdP=DRV.ll.slice();DRV.spdLook=Date.now();try{v=drvSpeedLimit(DRV.ll);}catch(e){}DRV.spdRes=v;}else v=DRV.spdRes;
   if(v!=null){DRV.spdV=v;DRV.spdT=Date.now();}else if(DRV.spdV!=null&&Date.now()-DRV.spdT<8000)v=DRV.spdV;   /* keep the last value for a few seconds across gaps */
   el.hidden=v==null;$('#drvTop').classList.toggle('hasSpd',v!=null);
-  if(v!=null){$('#drvSpdN').textContent=v;el.classList.toggle('over',DRV.kmh!=null&&DRV.kmh>v+5);}
+  DRV.spdShown=v;drvSpdPaint();
+  if(v!=null)el.classList.toggle('over',DRV.kmh!=null&&DRV.kmh>v+5);
 }
+/* classification mode: tap the sign to switch km/h ⇄ mph (US signs show multiples of 5) */
+const spdMph=()=>{try{return document.body.classList.contains('clmode')&&localStorage.getItem('flrp_mph')==='1';}catch(e){return false;}};
+function drvSpdPaint(){
+  const v=DRV.spdShown;if(v==null)return;const m=spdMph();
+  $('#drvSpdN').textContent=m?Math.round(v/1.609344/5)*5:v;$('#drvSpd').querySelector('small').textContent=m?'mph':'km/h';
+}
+$('#drvSpd').onclick=()=>{if(!document.body.classList.contains('clmode'))return;try{localStorage.setItem('flrp_mph',spdMph()?'0':'1');}catch(e){}drvSpdPaint();};
 
 /* ---- Explore side panel: sections fold, explanations on demand ---- */
 (function(){
