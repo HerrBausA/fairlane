@@ -3428,7 +3428,7 @@ $('#exMissed').onclick=()=>{
 $('#exRateExport').onclick=()=>{
   const v=Object.keys(rLoad()).length;if(!v){toast('Rate a few stretches first: tap a coloured US-feeling stretch on the map.');return;}
   const txt=JSON.stringify(exExport(),null,1);
-  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='fairlane-us-ratings.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);toast('Saved fairlane-us-ratings.json – attach it in your chat with Claude.',6000);}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='fairlane-us-ratings_'+fileStamp()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);toast('Saved fairlane-us-ratings.json – attach it in your chat with Claude.',6000);}
   catch(err){toast('Download blocked – use "Copy" instead.',5000);}
 };
 $('#exRateCopy').onclick=async()=>{
@@ -3647,7 +3647,7 @@ $('#savedBox').addEventListener('click',e=>{
   if(k==='load'&&it){const rec=rtList().find(x=>x.id===it.dataset.id);if(rec)rtOpen(rec);}
   else if(k==='del'&&it){if(confirm('Delete this saved route?')){store.set(RT_KEY,rtList().filter(x=>x.id!==it.dataset.id));rtBox(true);}}
   else if(k==='export'){const all=rtList();if(!all.length){toast('Nothing to back up yet.');return;}
-    try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({v:1,routes:all})],{type:'application/json'}));a.download='fairlane-saved-routes.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}catch(x){toast('Download blocked.');}}
+    try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({v:1,routes:all})],{type:'application/json'}));a.download='fairlane-saved-routes_'+fileStamp()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}catch(x){toast('Download blocked.');}}
   else if(k==='import'){const f=document.createElement('input');f.type='file';f.accept='.json,application/json';f.onchange=()=>{const fl=f.files&&f.files[0];if(!fl)return;const rd=new FileReader();rd.onload=()=>{try{const j=JSON.parse(rd.result),inc=(j&&j.routes)||[];const have=new Set(rtList().map(x=>x.id));const add=inc.filter(x=>x&&x.id&&x.wps&&x.wps.length>1&&!have.has(x.id));store.set(RT_KEY,add.concat(rtList()).slice(0,60));rtBox(true);toast(add.length+' route'+(add.length===1?'':'s')+' loaded from the file.',4000);}catch(x){toast('That file is not a saved-routes backup.',4500);}};rd.readAsText(fl);};f.click();}
 });
 
@@ -4077,6 +4077,7 @@ setTimeout(()=>locate(true),400);
   try{if(window.DRV&&drvHuOn())drvHuLayout();}catch(e){}
   [map,EX.map,TR.map].forEach(m=>{try{m&&!(window.DRV&&drvHuOn()&&m===EX.map)&&m.invalidateSize({animate:false});}catch(e){}});try{EX.map&&exSyncSoon();}catch(e){}},200);};
 window.addEventListener('resize',rz);window.addEventListener('orientationchange',rz);}
+const fileStamp=()=>{const d=new Date(),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes());};   /* local time, e.g. 2026-11-16_11-33 */
 /* ---- Classification mode: US-feeling (bronze/silver/gold or not), scenic y/n, avenue y/n – stored with the rating, exported, used for the next calibration ---- */
 const CL_T=['bronze','silver','gold'];
 function clState(l){
